@@ -3,3 +3,6 @@ CPPFLAGS = -isystem /home/pseyfert/.local/include -march=native -std=c++17 -m64 
 all = masked
 
 masked: masked.o
+
+clean:
+	rm -f *.o masked
