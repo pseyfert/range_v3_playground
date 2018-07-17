@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2018  CERN for the benefit of the LHCb collaboration
+ * Author: Paul Seyfert <pseyfert@cern.ch>
+ *
+ * This software is distributed under the terms of the GNU General Public
+ * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+ *
+ * In applying this licence, CERN does not waive the privileges and immunities
+ * granted to it by virtue of its status as an Intergovernmental Organization
+ * or submit itself to any jurisdiction.
+ */
+
+#include "mask.hpp"
 #include <iostream>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/indices.hpp>
@@ -37,8 +50,10 @@ int main()
   std::vector<Widget> widgets;
   std::vector<bool>   mask;
 
-  for ( auto i : ranges::view::indices( 23 ) ) {
+  for ( auto i : ranges::view::indices( 24 ) ) {
     widgets.emplace_back( i );
+  }
+  for ( auto i : ranges::view::indices( 42 ) ) {
     mask.push_back( i % 3 != 1 );
   }
 
@@ -50,6 +65,14 @@ int main()
 
   // does the same here, but don't want to know what doesn't work
   for ( auto el : view_masked( ranges::view::zip( widgets, mask ) ) ) {
+    std::cout << el.the_int() << std::endl;
+  }
+
+  for ( auto el : ranges::view::masker( widgets, mask ) ) {
+    std::cout << el.the_int() << std::endl;
+  }
+
+  for ( auto el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
     std::cout << el.the_int() << std::endl;
   }
 
