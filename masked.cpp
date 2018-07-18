@@ -10,10 +10,10 @@
  * or submit itself to any jurisdiction.
  */
 
-#include "mask.hpp"
 #include <iostream>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/indices.hpp>
+#include <range/v3/view/mask.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 #include <vector>

@@ -34,6 +34,7 @@ flags = [
 ]
 
 flags += ['-isystem'+'/home/pseyfert/.local/include', ]
+flags += ['-Iinclude', ]
 
 # youcompleteme is calling this function to get flags
 # You can also set database for flags. Check: JSONCompilationDatabase.html in
