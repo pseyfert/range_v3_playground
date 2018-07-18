@@ -19,6 +19,9 @@
 // TODO: add RANGES_DECLTYPE_AUTO_RETURN for "old" c++ standards
 // TODO: check for reference correctness
 
+#include <boost/type_index.hpp>
+#include <iostream>
+
 #include <range/v3/range_fwd.hpp>
 #include <range/v3/utility/functional.hpp>
 #include <range/v3/utility/static_const.hpp>
@@ -37,22 +40,56 @@ namespace ranges
                 template<typename Rng, typename Msk>
                 auto operator()(Rng&& rng, Msk&& msk) const
                 {
+                    // std::cout << "received" << std::endl;
+                    // for(auto i : msk)
+                    //     std::cout << i << std::endl;
                     CONCEPT_ASSERT(Range<Rng>());
                     CONCEPT_ASSERT(Range<Msk>());
+                    for(auto t : ranges::view::zip(rng, msk))
+                        std::cout << "w: " << t.first << "\tf: " << t.second
+                                  << std::endl;
+                    for(auto t :
+                        ranges::view::zip(rng, msk) |
+                            ranges::view::filter([](auto&& range_item) -> bool {
+                                return range_item.second;
+                            }))
+                        std::cout << "w: " << t.first << "\tf: " << t.second
+                                  << std::endl;
+                    for(auto t :
+                        ranges::view::zip(rng, msk) |
+                            ranges::view::filter([](auto&& range_item) -> bool {
+                                return range_item.second;
+                            }) |
+                            ranges::view::transform(
+                                [](auto&& range_item) -> decltype(auto) {
+                                    return range_item.first;
+                                }))
+                        std::cout << "w: " << t << std::endl;
                     return ranges::view::zip(rng, msk) |
                            ranges::view::filter([](auto&& range_item) -> bool {
+                               std::cout << "checking widget "
+                                         << range_item.first << std::endl;
+                               std::cout << "returning " << range_item.second
+                                         << std::endl;
                                return range_item.second;
                            }) |
                            ranges::view::transform(
                                [](auto&& range_item) -> decltype(auto) {
+                                   std::cout << "here passing "
+                                             << range_item.first << std::endl;
                                    return range_item.first;
                                });
                 }
                 template<typename Msk>
-                auto operator()(Msk&& msk) const
+                auto operator()(Msk&& msk) const -> decltype(
+                    make_pipeable(std::bind(*this, std::placeholders::_1,
+                                            protect(std::forward<Msk>(msk)))))
                 {
+                    CONCEPT_ASSERT(Range<Msk>());
                     return make_pipeable(
-                        std::bind(*this, std::placeholders::_1, protect(msk)));
+                        std::bind(*this,
+                                  std::placeholders::_1,
+                                  protect(std::forward<Msk>(msk))));
                 }
             };
 

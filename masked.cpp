@@ -10,13 +10,17 @@
  * or submit itself to any jurisdiction.
  */
 
+#include <boost/type_index.hpp>
 #include <iostream>
+#include <range/v3/all.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/indices.hpp>
 #include <range/v3/view/mask.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 #include <vector>
+
+using indextype = unsigned int;
 
 class Widget
 {
@@ -30,9 +34,16 @@ public:
   Widget( float f ) : m_float( f ) {}
   Widget( int i, float f ) : m_int( i ), m_float( f ) {}
   Widget( float f, int i ) : m_int( i ), m_float( f ) {}
-  int   the_int() { return m_int; }
-  float the_float() { return m_float; }
+  int   the_int() const { return m_int; }
+  float the_float() const { return m_float; }
+  void  upit() { m_float = m_float + 42.f; }
 };
+
+inline std::ostream& operator<<( std::ostream& str, const Widget& obj )
+{
+  str << obj.the_int() << '\t' << obj.the_float();
+  return str;
+}
 
 auto keep_true = []( auto range_item ) -> bool { return range_item.second; };
 
@@ -51,30 +62,66 @@ int main()
   std::vector<bool>   mask;
 
   for ( auto i : ranges::view::indices( 24 ) ) {
-    widgets.emplace_back( i );
+    widgets.emplace_back( i, float( i ) );
   }
   for ( auto i : ranges::view::indices( 42 ) ) {
     mask.push_back( i % 3 != 1 );
   }
 
-  // too long but works
-  for ( auto el : ranges::view::zip( widgets, mask ) | ranges::view::filter( keep_true ) |
-                      ranges::view::transform( get_first ) ) {
-    std::cout << el.the_int() << std::endl;
-  }
+  // // too long but works
+  // std::cout << "long version" << std::endl;
+  // for ( auto& el : ranges::view::zip( widgets, mask ) | ranges::view::filter( keep_true ) |
+  //                      ranges::view::transform( get_first ) ) {
+  //   std::cout << el << std::endl;
+  //   el.upit();
+  // }
+  // std::cout << std::endl;
+  // std::cout << std::endl;
+  //
+  // // does the same here, but don't want to know what doesn't work
+  // std::cout << "bad version" << std::endl;
+  // for ( auto& el : view_masked( ranges::view::zip( widgets, mask ) ) ) {
+  //   std::cout << el << std::endl;
+  //   el.upit();
+  // }
+  // std::cout << std::endl;
+  // std::cout << std::endl;
 
-  // does the same here, but don't want to know what doesn't work
-  for ( auto el : view_masked( ranges::view::zip( widgets, mask ) ) ) {
-    std::cout << el.the_int() << std::endl;
+  std::cout << "wrapped" << std::endl;
+  for ( auto& el : ranges::view::masker( widgets, mask ) ) {
+    std::cout << el << std::endl;
+    el.upit();
   }
+  std::cout << std::endl;
+  std::cout << std::endl;
 
-  for ( auto el : ranges::view::masker( widgets, mask ) ) {
-    std::cout << el.the_int() << std::endl;
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
+    std::cout << el << std::endl;
   }
-
-  for ( auto el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
-    std::cout << el.the_int() << std::endl;
-  }
-
+  // std::cout << std::endl;
+  // std::cout << std::endl;
+  //
+  // const indextype getit = 4;
+  // std::cout << "element index " << getit << " is: " << std::endl;
+  //
+  // indextype i     = 0;
+  // using rangetype = decltype( ranges::view::masker( widgets, mask ) );
+  // ranges::iterator_t<rangetype> it;
+  // auto theend = ranges::view::masker( widgets, mask ).end();
+  // for ( it = ranges::view::masker( widgets, mask ).begin(); it != theend; ++it ) {
+  //   if ( i++ == getit ) break;
+  // }
+  //
+  // // std::cout << '\t' << ( *it ).the_int() << '\t' << ( *it ).the_float() << std::endl;
+  // std::cout << (*it) << std::endl;
+  // // std::cout << '\t' << ranges::view::masker( widgets, mask ).begin()[4].the_int()
+  // //           << '\t' << ranges::view::masker( widgets, mask ).begin()[4].the_float() << std::endl;
+  //
+  // // using ind_t = ranges::range_difference_type_t<decltype(ranges::view::masker(widgets, mask))>;
+  // // ind_t getit_argh = getit;
+  // //
+  // // std::cout << '\t' << ranges::begin( ranges::view::masker( widgets, mask ) )[getit] << std::endl;
+  //
   return 0;
 }
