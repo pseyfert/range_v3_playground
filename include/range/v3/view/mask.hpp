@@ -40,24 +40,23 @@ namespace ranges
                 template<typename Rng, typename Msk>
                 auto operator()(Rng&& rng, Msk&& msk) const
                 {
-                    // std::cout << "received" << std::endl;
-                    // for(auto i : msk)
-                    //     std::cout << i << std::endl;
                     CONCEPT_ASSERT(Range<Rng>());
                     CONCEPT_ASSERT(Range<Msk>());
-                    for(auto t : ranges::view::zip(rng, msk))
-                        std::cout << "w: " << t.first << "\tf: " << t.second
-                                  << std::endl;
+                    // for(auto t : ranges::view::zip(rng, msk))
+                    //     std::cout << "w: " << t.first << "\tf: " << t.second
+                    //               << std::endl;
+                    // for(auto t :
+                    //     ranges::view::zip(rng, msk) |
+                    //         ranges::view::filter([](auto&& range_item) ->
+                    //         bool {
+                    //             return range_item.second;
+                    //         }))
+                    //     std::cout << "w: " << t.first << "\tf: " << t.second
+                    //               << std::endl;
                     for(auto t :
                         ranges::view::zip(rng, msk) |
-                            ranges::view::filter([](auto&& range_item) -> bool {
-                                return range_item.second;
-                            }))
-                        std::cout << "w: " << t.first << "\tf: " << t.second
-                                  << std::endl;
-                    for(auto t :
-                        ranges::view::zip(rng, msk) |
-                            ranges::view::filter([](auto&& range_item) -> bool {
+                            ranges::view::filter([](auto&& range_item) ->
+                            bool {
                                 return range_item.second;
                             }) |
                             ranges::view::transform(
@@ -65,7 +64,8 @@ namespace ranges
                                     return range_item.first;
                                 }))
                         std::cout << "w: " << t << std::endl;
-                    return ranges::view::zip(rng, msk) |
+                    return ranges::view::zip(std::forward<Rng>(rng),
+                                             std::forward<Msk>(msk)) |
                            ranges::view::filter([](auto&& range_item) -> bool {
                                std::cout << "checking widget "
                                          << range_item.first << std::endl;
@@ -75,8 +75,9 @@ namespace ranges
                            }) |
                            ranges::view::transform(
                                [](auto&& range_item) -> decltype(auto) {
-                                   std::cout << "here passing "
-                                             << range_item.first << std::endl;
+                                   // std::cout << "here passing "
+                                   //           << range_item.first <<
+                                   //           std::endl;
                                    return range_item.first;
                                });
                 }
