@@ -31,6 +31,7 @@ public:
   Widget() {}
   Widget( int i ) : m_int( i ) {}
   int   the_int() const { return m_int; }
+  void  upit() { m_int += 23; }
 };
 
 inline std::ostream& operator<<( std::ostream& str, const Widget& obj )
@@ -42,22 +43,37 @@ inline std::ostream& operator<<( std::ostream& str, const Widget& obj )
 int main()
 {
   std::vector<Widget> widgets;
+  std::vector<Widget> tmp;
   std::vector<bool>   mask;
 
   for ( auto i : ranges::view::indices( 24 ) ) {
     widgets.emplace_back( i );
+    tmp.emplace_back( i );
     mask.push_back( i % 3 != 1 );
   }
+  const std::vector<Widget> cwidgets(tmp);
 
   std::cout << "wrapped" << std::endl;
   for ( auto& el : ranges::view::masker( widgets, mask ) ) {
     std::cout << el << std::endl;
+    el.upit();
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
   std::cout << "piped" << std::endl;
   for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
+    std::cout << el << std::endl;
+    el.upit();
+  }
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
+    std::cout << el << std::endl;
+  }
+  for ( auto& el : ranges::view::all( cwidgets ) | ranges::view::masker( mask ) ) {
+    // el.upit(); // violates const
     std::cout << el << std::endl;
   }
 

@@ -14,20 +14,19 @@
 #ifndef RANGES_V3_VIEW_MASK_HPP
 #define RANGES_V3_VIEW_MASK_HPP
 
-// TODO: clean up includes
 // TODO: add comments for doc-gen
 // TODO: add RANGES_DECLTYPE_AUTO_RETURN for "old" c++ standards
-// TODO: check for reference correctness
 
-#include <boost/type_index.hpp>
-#include <iostream>
-
-#include <range/v3/range_fwd.hpp>
-#include <range/v3/utility/functional.hpp>
-#include <range/v3/utility/static_const.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
+#include <functional> // for _1, bind
+#include <range/v3/detail/config.hpp> // for RANGES_INLINE_VARIABLE
+#include <range/v3/range_concepts.hpp> // for Range
+#include <range/v3/utility/concepts.hpp> // for CONCEPT_ASSERT
+#include <range/v3/utility/functional.hpp> // for operator|, make_pipeable
+#include <range/v3/view/all.hpp> // for all
+#include <range/v3/view/filter.hpp> // for filter
+#include <range/v3/view/transform.hpp> // for transform
+#include <range/v3/view/zip.hpp> // for zip
+#include <utility> // for forward
 
 namespace ranges
 {
@@ -42,58 +41,26 @@ namespace ranges
                 {
                     CONCEPT_ASSERT(Range<Rng>());
                     CONCEPT_ASSERT(Range<Msk>());
-                    // for(auto t : ranges::view::zip(rng, msk))
-                    //     std::cout << "w: " << t.first << "\tf: " << t.second
-                    //               << std::endl;
-                    // for(auto t :
-                    //     ranges::view::zip(rng, msk) |
-                    //         ranges::view::filter([](auto&& range_item) ->
-                    //         bool {
-                    //             return range_item.second;
-                    //         }))
-                    //     std::cout << "w: " << t.first << "\tf: " << t.second
-                    //               << std::endl;
-                    for(auto t :
-                        ranges::view::zip(rng, msk) |
-                            ranges::view::filter([](auto&& range_item) ->
-                            bool {
-                                return range_item.second;
-                            }) |
-                            ranges::view::transform(
-                                [](auto&& range_item) -> decltype(auto) {
-                                    return range_item.first;
-                                }))
-                        std::cout << "w: " << t << std::endl;
                     return ranges::view::zip(std::forward<Rng>(rng),
                                              std::forward<Msk>(msk)) |
                            ranges::view::filter([](auto&& range_item) -> bool {
-                               std::cout << "checking widget "
-                                         << range_item.first << std::endl;
-                               std::cout << "returning " << range_item.second
-                                         << std::endl;
                                return range_item.second;
                            }) |
                            ranges::view::transform(
                                [](auto&& range_item) -> decltype(auto) {
-                                   // std::cout << "here passing "
-                                   //           << range_item.first <<
-                                   //           std::endl;
                                    return range_item.first;
                                });
                 }
                 template<typename Msk>
-                auto operator()(Msk&& msk) const -> decltype(
-                    make_pipeable(std::bind(*this, std::placeholders::_1,
-                                            protect(std::forward<Msk>(msk)))))
+                auto operator()(Msk&& msk) const
                 {
                     CONCEPT_ASSERT(Range<Msk>());
                     return make_pipeable(
                         std::bind(*this,
                                   std::placeholders::_1,
-                                  protect(std::forward<Msk>(msk))));
+                                  ranges::view::all(std::forward<Msk>(msk))));
                 }
             };
-
             RANGES_INLINE_VARIABLE(mask_fn, masker)
         }
     }
