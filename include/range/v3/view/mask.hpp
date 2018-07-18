@@ -17,6 +17,7 @@
 // TODO: clean up includes
 // TODO: add comments for doc-gen
 // TODO: add RANGES_DECLTYPE_AUTO_RETURN for "old" c++ standards
+// TODO: check for reference correctness
 
 #include <range/v3/range_fwd.hpp>
 #include <range/v3/utility/functional.hpp>
@@ -34,20 +35,24 @@ namespace ranges
             struct mask_fn
             {
                 template<typename Rng, typename Msk>
-                auto
-                operator()(Rng && rng, Msk && msk) const
+                auto operator()(Rng&& rng, Msk&& msk) const
                 {
                     CONCEPT_ASSERT(Range<Rng>());
                     CONCEPT_ASSERT(Range<Msk>());
-                    return ranges::view::zip( rng, msk ) |
-                           ranges::view::filter( []( auto && range_item ) -> bool { return range_item.second; } ) |
-                           ranges::view::transform( []( auto && range_item ) -> decltype( auto ) { return range_item.first; } ) ;
+                    return ranges::view::zip(rng, msk) |
+                           ranges::view::filter([](auto&& range_item) -> bool {
+                               return range_item.second;
+                           }) |
+                           ranges::view::transform(
+                               [](auto&& range_item) -> decltype(auto) {
+                                   return range_item.first;
+                               });
                 }
                 template<typename Msk>
-                auto operator()(Msk && msk) const
+                auto operator()(Msk&& msk) const
                 {
-                    return make_pipeable(std::bind(*this, std::placeholders::_1,
-                        protect(msk)));
+                    return make_pipeable(
+                        std::bind(*this, std::placeholders::_1, protect(msk)));
                 }
             };
 
