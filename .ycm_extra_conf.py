@@ -22,6 +22,11 @@
 # by Paul Seyfert <Paul.Seyfert@cern.ch>                                 #
 ##########################################################################
 
+import os
+
+localheaders = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "include")
+
 # some default flags
 # for more information install clang-3.2-doc package and
 # check UsersManual.html
@@ -34,7 +39,7 @@ flags = [
 ]
 
 flags += ['-isystem'+'/home/pseyfert/.local/include', ]
-flags += ['-Iinclude', ]
+flags += ['-I'+localheaders, ]
 
 # youcompleteme is calling this function to get flags
 # You can also set database for flags. Check: JSONCompilationDatabase.html in
