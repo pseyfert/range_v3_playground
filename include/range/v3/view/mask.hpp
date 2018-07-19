@@ -102,7 +102,7 @@ namespace ranges
                 template<typename... T>
                 static bool tuple_and(const std::tuple<T...> t)
                 {
-                    tuple_and(t, std::index_sequence_for<T...>{});
+                    return tuple_and(t, std::index_sequence_for<T...>{});
                 }
             };
             RANGES_INLINE_VARIABLE(make_and_mask_fn, make_and_masker)
@@ -146,7 +146,7 @@ namespace ranges
                 template<typename... T>
                 static bool tuple_or(const std::tuple<T...> t)
                 {
-                    tuple_or(t, std::index_sequence_for<T...>{});
+                    return tuple_or(t, std::index_sequence_for<T...>{});
                 }
             };
             RANGES_INLINE_VARIABLE(make_or_mask_fn, make_or_masker)
