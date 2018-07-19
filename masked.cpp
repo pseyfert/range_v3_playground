@@ -45,18 +45,19 @@ int main()
   std::vector<Widget> widgets;
   std::vector<Widget> tmp;
   std::vector<bool>   mask;
+  std::vector<bool>   mask2;
 
   for ( auto i : ranges::view::indices( 24 ) ) {
     widgets.emplace_back( i );
     tmp.emplace_back( i );
     mask.push_back( i % 3 != 1 );
+    mask2.push_back( (i+3) % 4 != 2 );
   }
   const std::vector<Widget> cwidgets(tmp);
 
   std::cout << "wrapped" << std::endl;
   for ( auto& el : ranges::view::masker( widgets, mask ) ) {
     std::cout << el << std::endl;
-    el.upit();
   }
   std::cout << std::endl;
   std::cout << std::endl;
@@ -64,18 +65,37 @@ int main()
   std::cout << "piped" << std::endl;
   for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
     std::cout << el << std::endl;
-    el.upit();
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask2 ) ) {
     std::cout << el << std::endl;
   }
-  for ( auto& el : ranges::view::all( cwidgets ) | ranges::view::masker( mask ) ) {
-    // el.upit(); // violates const
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( ranges::view::make_or_masker( mask, mask2 ) ) ) {
     std::cout << el << std::endl;
   }
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::apply_or_masker( widgets, mask, mask2 ) ) {
+    std::cout << el << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::apply_or_masker( mask, mask2 ) ) {
+    std::cout << el << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << std::endl;
 
   return 0;
 }
