@@ -25,13 +25,13 @@ using indextype = unsigned int;
 class Widget
 {
 private:
-  int   m_int{0};
+  int m_int{0};
 
 public:
   Widget() {}
   Widget( int i ) : m_int( i ) {}
-  int   the_int() const { return m_int; }
-  void  upit() { m_int += 23; }
+  int  the_int() const { return m_int; }
+  void upit() { m_int += 23; }
 };
 
 inline std::ostream& operator<<( std::ostream& str, const Widget& obj )
@@ -51,9 +51,9 @@ int main()
     widgets.emplace_back( i );
     tmp.emplace_back( i );
     mask.push_back( i % 3 != 1 );
-    mask2.push_back( (i+3) % 4 != 2 );
+    mask2.push_back( ( i + 3 ) % 4 != 2 );
   }
-  const std::vector<Widget> cwidgets(tmp);
+  const std::vector<Widget> cwidgets( tmp );
 
   std::cout << "wrapped" << std::endl;
   for ( auto& el : ranges::view::masker( widgets, mask ) ) {
@@ -77,21 +77,43 @@ int main()
   std::cout << std::endl;
 
   std::cout << "piped" << std::endl;
-  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( ranges::view::make_or_masker( mask, mask2 ) ) ) {
+  for ( auto& el :
+        ranges::view::all( widgets ) | ranges::view::masker( ranges::view::make_or_masker( mask, mask2 ) ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
   std::cout << "piped" << std::endl;
-  for ( auto& el : ranges::view::apply_or_masker( widgets, mask, mask2 ) ) {
+  for ( auto& el : ranges::view::masker( widgets, ranges::view::make_or_masker( mask, mask2 ) ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
   std::cout << "piped" << std::endl;
-  for ( auto& el : ranges::view::all( widgets ) | ranges::view::apply_or_masker( mask, mask2 ) ) {
+  for ( auto& el : ranges::view::or_masker( widgets, mask, mask2 ) ) {
+    std::cout << el << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::or_masker( mask, mask2 ) ) {
+    std::cout << el << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::masker( widgets, ranges::view::make_or_masker( mask, mask, mask, mask ) ) ) {
+    std::cout << el << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "piped" << std::endl;
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::apply_or_masker( mask, mask, mask, mask ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;

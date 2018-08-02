@@ -69,7 +69,7 @@ namespace ranges
                 auto operator()(Msks&&... msks) const
                 {
                     CONCEPT_ASSERT((Range<Msks>() || ...));
-                    return ranges::view::zip(std::forward<Msks>(msks) ...) |
+                    return ranges::view::zip(std::forward<Msks>(msks)...) |
                            ranges::view::transform(
                                [](auto&& range_item) -> bool {
                                    return tuple_and(range_item);
@@ -95,7 +95,8 @@ namespace ranges
                     return (v && ...);
                 }
                 template<typename... T, std::size_t... Idx>
-                static bool tuple_and(const std::tuple<T...> t, std::index_sequence<Idx...>)
+                static bool tuple_and(const std::tuple<T...> t,
+                                      std::index_sequence<Idx...>)
                 {
                     return variable_length_and(std::get<Idx>(t)...);
                 }
@@ -107,13 +108,24 @@ namespace ranges
             };
             RANGES_INLINE_VARIABLE(make_and_mask_fn, make_and_masker)
 
+            struct apply_and_mask_fn
+            {
+                template<typename... Msks>
+                auto operator()(Msks&&... msks) const
+                {
+                    CONCEPT_ASSERT((Range<Msks>() || ...));
+                    return masker(make_and_masker(msks...));
+                }
+            };
+            RANGES_INLINE_VARIABLE(apply_and_mask_fn, apply_and_masker)
+
             struct make_or_mask_fn
             {
                 template<typename... Msks>
                 auto operator()(Msks&&... msks) const
                 {
                     CONCEPT_ASSERT((Range<Msks>() || ...));
-                    return ranges::view::zip(std::forward<Msks>(msks) ...) |
+                    return ranges::view::zip(std::forward<Msks>(msks)...) |
                            ranges::view::transform(
                                [](auto&& range_item) -> bool {
                                    return tuple_or(range_item);
@@ -139,7 +151,8 @@ namespace ranges
                     return (v || ...);
                 }
                 template<typename... T, std::size_t... Idx>
-                static bool tuple_or(const std::tuple<T...> t, std::index_sequence<Idx...>)
+                static bool tuple_or(const std::tuple<T...> t,
+                                     std::index_sequence<Idx...>)
                 {
                     return variable_length_or(std::get<Idx>(t)...);
                 }
@@ -152,6 +165,17 @@ namespace ranges
             RANGES_INLINE_VARIABLE(make_or_mask_fn, make_or_masker)
 
             struct apply_or_mask_fn
+            {
+                template<typename... Msks>
+                auto operator()(Msks&&... msks) const
+                {
+                    CONCEPT_ASSERT((Range<Msks>() || ...));
+                    return masker(make_or_masker(msks...));
+                }
+            };
+            RANGES_INLINE_VARIABLE(apply_or_mask_fn, apply_or_masker)
+
+            struct or_mask_fn
             {
                 template<typename Rng, typename Msk1, typename Msk2>
                 auto operator()(Rng&& rng, Msk1&& msk1, Msk2&& msk2) const
@@ -183,7 +207,7 @@ namespace ranges
                                   ranges::view::all(std::forward<Msk2>(msk2))));
                 }
             };
-            RANGES_INLINE_VARIABLE(apply_or_mask_fn, apply_or_masker)
+            RANGES_INLINE_VARIABLE(or_mask_fn, or_masker)
 
             struct and_mask_fn
             {
