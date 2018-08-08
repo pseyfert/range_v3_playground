@@ -1,0 +1,8 @@
+include(CMakeFindDependencyMacro)
+get_filename_component(MASKEDRANGE_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+find_dependency(range-v3 REQUIRED)
+
+if(NOT TARGET masked_range)
+  include("${MASKEDRANGE_CMAKE_DIR}/masked_range-targets.cmake")
+endif()
