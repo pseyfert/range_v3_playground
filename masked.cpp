@@ -55,28 +55,28 @@ int main()
   }
   const std::vector<Widget> cwidgets( tmp );
 
-  std::cout << "wrapped" << std::endl;
+  std::cout << "functional, single mask (mask)" << std::endl;
   for ( auto& el : ranges::view::masker( widgets, mask ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "piped, single mask (mask)" << std::endl;
   for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "piped, single mask (mask2)" << std::endl;
   for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask2 ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "piped, into funtional mask || mask2 (N masks, non pipable mask)" << std::endl;
   for ( auto& el :
         ranges::view::all( widgets ) | ranges::view::masker( ranges::view::make_or_masker( mask, mask2 ) ) ) {
     std::cout << el << std::endl;
@@ -84,35 +84,35 @@ int main()
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "staged functional, mask || mask2 (N masks, non pipable mask)" << std::endl;
   for ( auto& el : ranges::view::masker( widgets, ranges::view::make_or_masker( mask, mask2 ) ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "onecall functional, mask || mask2 (2 masks, pipe and functional)" << std::endl;
   for ( auto& el : ranges::view::or_masker( widgets, mask, mask2 ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "onecall piped, mask || mask2 (2 masks, pipe and functional)" << std::endl;
   for ( auto& el : ranges::view::all( widgets ) | ranges::view::or_masker( mask, mask2 ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "staged functional, mask || mask || mask || mask (N masks, non pipable mask)" << std::endl;
   for ( auto& el : ranges::view::masker( widgets, ranges::view::make_or_masker( mask, mask, mask, mask ) ) ) {
     std::cout << el << std::endl;
   }
   std::cout << std::endl;
   std::cout << std::endl;
 
-  std::cout << "piped" << std::endl;
+  std::cout << "piped, mask || mask || mask || mask (N masks, non functional)" << std::endl;
   for ( auto& el : ranges::view::all( widgets ) | ranges::view::apply_or_masker( mask, mask, mask, mask ) ) {
     std::cout << el << std::endl;
   }
