@@ -24,7 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_EXAMPLES "Build the example" OFF)
 
 if(BUILD_EXAMPLES)
-  foreach(target IN ITEMS masked_int masked_bool)
+  foreach(target IN ITEMS masked_int masked_bool wrap_user)
     add_executable(${target} examples/${target}.cpp)
     target_include_directories(${target}
       PUBLIC
