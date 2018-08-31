@@ -40,18 +40,22 @@ inline std::ostream& operator<<( std::ostream& str, const Widget& obj )
   return str;
 }
 
-int main()
+int main( int argc, char** )
 {
   std::vector<Widget> widgets;
   std::vector<Widget> tmp;
-  std::vector<int>   mask;
-  std::vector<int>   mask2;
+  std::vector<int>    mask;
+  std::vector<int>    mask2;
+  std::vector<int>    mask3;
+  std::vector<int>    mask4;
 
   for ( auto i : ranges::view::indices( 24 ) ) {
     widgets.emplace_back( i );
     tmp.emplace_back( i );
     mask.push_back( i % 3 != 1 );
     mask2.push_back( ( i + 3 ) % 4 != 2 );
+    mask3.push_back( ( i + 4 ) % 3 != 1 );
+    mask4.push_back( ( i + 4 ) % 6 != 1 );
   }
   const std::vector<Widget> cwidgets( tmp );
 
@@ -118,6 +122,15 @@ int main()
   }
   std::cout << std::endl;
   std::cout << std::endl;
+
+  std::vector<std::vector<int>> varlengthmasks;
+  for ( [[maybe_unused]] auto i : ranges::view::indices( argc ) ) {
+    if ( 0 == ( i % 4 ) ) varlengthmasks.push_back( mask );
+    if ( 1 == ( i % 4 ) ) varlengthmasks.push_back( mask2 );
+    if ( 2 == ( i % 4 ) ) varlengthmasks.push_back( mask3 );
+    if ( 3 == ( i % 4 ) ) varlengthmasks.push_back( mask4 );
+  }
+  [[maybe_unused]] auto asdf = ranges::view::make_vector_or_masker( varlengthmasks );
 
   return 0;
 }
