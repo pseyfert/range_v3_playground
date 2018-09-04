@@ -130,11 +130,7 @@ int main( int argc, char** )
     if ( 2 == ( i % 4 ) ) varlengthmasks.push_back( mask3 );
     if ( 3 == ( i % 4 ) ) varlengthmasks.push_back( mask4 );
   }
-  auto asdf = ranges::view::make_vector_or_masker( varlengthmasks );
-  for ( const auto& el : asdf ) {
-    std::cout << el << std::endl;
-  }
-  for ( auto& el : ranges::view::masker( widgets, asdf ) ) {
+  for ( auto& el : ranges::view::masker( widgets, ranges::view::make_bool_vector_or_masker( varlengthmasks ) ) ) {
     std::cout << el << std::endl;
   }
   return 0;

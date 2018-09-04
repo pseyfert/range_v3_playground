@@ -17,11 +17,13 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
 find_package(range-v3 REQUIRED)
+find_package(benchmark)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_EXAMPLES "Build the example" OFF)
+option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
 
 if(BUILD_EXAMPLES)
   foreach(target IN ITEMS masked_int masked_bool wrap_user)
@@ -33,6 +35,24 @@ if(BUILD_EXAMPLES)
     target_link_libraries(${target}
       PUBLIC # does that even make sense for an executable?
       range-v3
+      )
+  endforeach(target)
+endif()
+
+if(BUILD_BENCHMARKS)
+  if(NOT benchmark_FOUND)
+    message(FATAL "benchark library not found, but benchmarks requested -> failing")
+  endif()
+  foreach(target IN ITEMS quick_bench)
+    add_executable(${target} benchmarks/${target}.cpp)
+    target_include_directories(${target}
+      PUBLIC
+      include
+      )
+    target_link_libraries(${target}
+      PUBLIC # does that even make sense for an executable?
+      range-v3
+      benchmark::benchmark
       )
   endforeach(target)
 endif()
