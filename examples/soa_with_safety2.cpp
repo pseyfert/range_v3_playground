@@ -53,11 +53,23 @@ public:
   template <typename... Args>
   IDedSOAContainer( int ID, Args&&... args ) : CONTAINER( args... ), m_identifier( ID ) {}
 
+  // template <typename T>
+  // auto push_back( T& t )
+  //     -> std::enable_if_t<view::self_type::fields_typelist::size() == 1 &&
+  //                         std::is_same_v<T, typename view::self_type::fields_typelist::template at<0>::type::type>> {
+  //   CONTAINER::emplace_back( std::forward<T>( t ) );
+  // }
   template <typename T>
-  auto push_back( T& t )
+  auto push_back( T&& t )
       -> std::enable_if_t<view::self_type::fields_typelist::size() == 1 &&
-                          std::is_same_v<T, typename view::self_type::fields_typelist::template at<0>::type::type>> {
+                          std::is_same_v<std::remove_reference_t<T>, typename view::self_type::fields_typelist::template at<0>::type::type>> {
     CONTAINER::emplace_back( std::forward<T>( t ) );
+  }
+  template <typename T>
+  auto push_back( const T& t )
+      -> std::enable_if_t<view::self_type::fields_typelist::size() == 1 &&
+                          std::is_same_v<std::remove_reference_t<T>, typename view::self_type::fields_typelist::template at<0>::type::type>> {
+    CONTAINER::emplace_back( std::forward<const T>( t ) );
   }
 
 private:
@@ -101,9 +113,9 @@ int main() {
     foo1.push_back( t );
   }
   for ( auto i : range( 42 ) ) {
-    fitres r{100.f, 0.f, 7.f, i};
-    foo2.emplace_back( r );
-    foo4.emplace_back( r );
+    const fitres r{100.f, 0.f, 7.f, i};
+    foo2.push_back( fitres{100.f, 0.f, 7.f, i} );
+    foo4.push_back( r );
   }
   for ( auto i : range( 43 ) ) {
     fitqual q{1.f, i};
