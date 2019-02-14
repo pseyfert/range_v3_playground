@@ -40,12 +40,6 @@ public:
   template <typename... Args>
   IDedSOAContainer( int ID, Args&&... args ) : CONTAINER( args... ), m_identifier( ID ) {}
 
-  // template <typename T>
-  // auto push_back( T& t )
-  //     -> std::enable_if_t<view::self_type::fields_typelist::size() == 1 &&
-  //                         std::is_same_v<T, typename view::self_type::fields_typelist::template at<0>::type::type>> {
-  //   CONTAINER::emplace_back( std::forward<T>( t ) );
-  // }
   template <typename T>
   auto push_back( T&& t )
       -> std::enable_if_t<view::self_type::fields_typelist::size() == 1 &&
