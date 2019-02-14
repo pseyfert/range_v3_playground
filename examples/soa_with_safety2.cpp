@@ -40,7 +40,7 @@ bool allsameid( FIRST& first, SECOND& second, OTHERS&... others );
 template <typename FIRST>
 bool allsameid( FIRST& /*unused*/ );
 
-template <typename T1, typename ...T>
+template <typename T1, typename... T>
 struct typegetter {
   using type = T1;
 };
@@ -54,16 +54,10 @@ public:
   IDedSOAContainer( int ID, Args&&... args ) : CONTAINER( args... ), m_identifier( ID ) {}
 
   template <typename T>
-  auto push_back(T& t) -> std::enable_if_t<
-  view::self_type::fields_typelist::size() == 1
-  &&
-  std::is_same_v<
-  T
-  ,  
-  typename view::self_type::fields_typelist::template at<0>::type::type
-    >
-  > {
-    CONTAINER::emplace_back(std::forward<T>(t));
+  auto push_back( T& t )
+      -> std::enable_if_t<view::self_type::fields_typelist::size() == 1 &&
+                          std::is_same_v<T, typename view::self_type::fields_typelist::template at<0>::type::type>> {
+    CONTAINER::emplace_back( std::forward<T>( t ) );
   }
 
 private:
@@ -77,11 +71,13 @@ template <template <class> class SKIN, typename... IDeds,
           typename = typename std::enable_if_t<
               SOA::Utils::ALL( SOA::impl::is_skin<SKIN>(),
                                is_IDed<typename std::remove_cv_t<typename std::remove_reference_t<IDeds>>>::value... )>>
-auto myzip( IDeds&&... views ) -> decltype(
-    zip( std::forward<typename std::remove_reference_t<IDeds>::view>( static_cast<typename std::remove_reference_t<IDeds>::view>(views) )... ).template view<SKIN>() ) {
+auto myzip( IDeds&&... views )
+    -> decltype( zip( std::forward<typename std::remove_reference_t<IDeds>::view>(
+                          static_cast<typename std::remove_reference_t<IDeds>::view>( views ) )... )
+                     .template view<SKIN>() ) {
   assert( allsameid( views... ) );
-  // std::cout << boost::typeindex::type_id_with_cvr<typename std::decay_t<typename typegetter<IDeds...>::type>::view::self_type::fields_typelist::template at<0>::type::type>().pretty_name() << std::endl;
-  return zip( std::forward<typename std::remove_reference_t<IDeds>::view>( static_cast<typename std::remove_reference_t<IDeds>::view>(views) )... )
+  return zip( std::forward<typename std::remove_reference_t<IDeds>::view>(
+                  static_cast<typename std::remove_reference_t<IDeds>::view>( views ) )... )
       .template view<SKIN>();
 }
 
