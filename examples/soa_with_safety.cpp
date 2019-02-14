@@ -20,11 +20,6 @@ public:
   std::string message() { return m_message; }
 };
 
-template <typename... T>
-bool variable_length_and( const T... v ) {
-  return ( v && ... );
-}
-
 template <typename T>
 struct is_IDed;
 
@@ -82,7 +77,10 @@ namespace {
     static auto myzip( IDeds&&... views )
         -> decltype( zip( std::forward<typename std::remove_reference_t<IDeds>::view>( views.m_container )... )
                          .template view<SKIN>() ) {
-      assert( allsameid( views... ) );
+      // alternative to assert(allsameid( views...))
+#ifndef NDEBUG
+      if ( !allsameid( views... ) ) throw IncompatibleZip( "zipping from different sets" );
+#endif
       return zip( std::forward<typename std::remove_reference_t<IDeds>::view>( views.m_container )... )
           .template view<SKIN>();
     }
