@@ -68,10 +68,18 @@ auto myzip( IDeds&&... views )
     -> decltype( zip( std::forward<typename std::remove_reference_t<IDeds>::view>(
                           static_cast<typename std::remove_reference_t<IDeds>::view>( views ) )... )
                      .template view<SKIN>() ) {
-  assert( allsameid( views... ) );
-  return zip( std::forward<typename std::remove_reference_t<IDeds>::view>(
-                  static_cast<typename std::remove_reference_t<IDeds>::view>( views ) )... )
-      .template view<SKIN>();
+/// maybe assert
+    assert(allsameid(views...));
+/// or throw
+#ifndef NDEBUG
+    if(!allsameid(views...))
+        throw IncompatibleZip("zipping from different sets");
+#endif
+
+    return zip(std::forward<typename std::remove_reference_t<IDeds>::view>(
+                   static_cast<typename std::remove_reference_t<IDeds>::view>(
+                       views))...)
+        .template view<SKIN>();
 }
 
 template <typename FIRST, typename SECOND, typename... OTHERS>
