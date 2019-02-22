@@ -13,10 +13,23 @@
 
 #ifndef PR_SELECTION
 #define PR_SELECTION 1
-#include <boost/type_index.hpp>
-#include <numeric>
-#include <type_traits>
-#include <vector>
+#include <assert.h>              // for assert
+#include <algorithm>             // for is_sorted, copy_if, includes, set_di...
+#include <boost/type_index.hpp>  // for type_id_with_cvr
+#include <cstddef>               // for size_t
+#include <functional>            // for invoke
+#include <iterator>              // for back_inserter, random_access_iterato...
+#include <limits>                // for numeric_limits
+#include <numeric>               // for iota
+#include <string>                // for string, operator+, to_string
+#include <type_traits>           // for enable_if_t, false_type, true_type
+#include <utility>               // for forward
+#include <vector>                // for vector, allocator
+#include "ZipTraits.h"     // for is_IDed
+#include <exception>             // IWYU pragma: keep
+// IWYU pragma: no_include <bits/exception.h>
+#include <cstdint>               // IWYU pragma: keep
+// IWYU pragma: no_include <bits/stdint-uintn.h>
 
 #ifdef __GNUC__
 #define LIKELY(x) __builtin_expect((x), 1)
@@ -26,14 +39,14 @@
 #define UNLIKELY(x) x
 #endif
 
-class NotGaudiException
+class NotGaudiException final : public std::exception
 {
     std::string m_message{"unspecified failure"};
 
 public:
-    NotGaudiException() {}
+    NotGaudiException() = default;
     NotGaudiException(std::string s)
-      : m_message(s)
+      : m_message(std::move(s))
     {}
     std::string message()
     {
@@ -334,10 +347,12 @@ struct SelectionView
             s1, s2, "set_union"); // check s1 and s2 are valid and compatible
 
         // Shortcuts so we can use .back() below
-        if(s1.empty())
+        if(s1.empty()) {
             return s2;
-        if(s2.empty())
+        }
+        if(s2.empty()) {
             return s1;
+        }
 
         // Create a new SelectionView object with an empty index vector with an
         // appropriate reserved capacity

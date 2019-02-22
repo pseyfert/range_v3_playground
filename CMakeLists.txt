@@ -26,7 +26,7 @@ option(BUILD_EXAMPLES "Build the example" OFF)
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
 
 if(BUILD_EXAMPLES)
-  foreach(target IN ITEMS masked_int masked_bool wrap_user soa_with_safety2 soa_with_safety soa_selection)
+  foreach(target IN ITEMS masked_int masked_bool wrap_user soa_with_safety2 soa_selection)
     add_executable(${target} examples/${target}.cpp)
     target_include_directories(${target}
       PUBLIC

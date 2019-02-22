@@ -1,39 +1,27 @@
-#include "SOAField.h"
-#include "SOASkin.h"
-#include "SOAUtils.h"
-#include "SOAView.h"
-#include <string>
+/*
+ * Copyright (C) 2019  CERN for the benefit of the LHCb collaboration
+ * Author: Paul Seyfert <pseyfert@cern.ch>
+ *
+ * This software is distributed under the terms of the GNU General Public
+ * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+ *
+ * In applying this licence, CERN does not waive the privileges and immunities
+ * granted to it by virtue of its status as an Intergovernmental Organization
+ * or submit itself to any jurisdiction.
+ */
 
-class IncompatibleZip
-{
-    std::string m_message{"unspecified failure"};
-
-public:
-    IncompatibleZip() {}
-    IncompatibleZip(std::string s)
-      : m_message(s)
-    {}
-    std::string message()
-    {
-        return m_message;
-    }
-};
-
-template<typename T>
-struct is_IDed
-{
-    bool value = false;
-};
-
-template<typename CONTAINER>
-class IDedSOAContainer;
-
-template<typename VIEW>
-struct is_IDed<IDedSOAContainer<VIEW>>
-{
-    static constexpr bool value =
-        SOA::Utils::is_view<std::decay_t<VIEW>>::value;
-};
+#ifndef SOAContainerSet_h
+#define SOAContainerSet_h
+#include <assert.h>                    // for assert
+#include <string>                      // for allocator, string
+#include <type_traits>                 // for remove_reference_t, enable_if_t
+#include <utility>                     // for forward
+#include "IncompatibleZipException.h"  // for IncompatibleZipException
+#include "SOASkin.h"                   // for is_skin
+#include "SOAUtils.h"                  // for ALL, is_view
+#include "SOAView.h"                   // for zip
+#include "ZipTraits.h"
+template <typename CONTAINER> class IDedSOAContainer;  // lines 14-15
 
 template<typename FIRST, typename SECOND, typename... OTHERS>
 bool allsameid(FIRST& first, SECOND& second, OTHERS&... others);
@@ -105,8 +93,9 @@ myzip(IDeds&&... views) -> IDedSOAContainer<
     assert(allsameid(views...));
 /// or throw
 #ifndef NDEBUG
-    if(!allsameid(views...))
-        throw IncompatibleZip("zipping from different sets");
+    if(!allsameid(views...)) {
+        throw IncompatibleZipException("zipping from different sets");
+    }
 #endif
 
     auto encapsulated_zip =
@@ -133,3 +122,4 @@ allsameid(FIRST& /*unused*/)
     return true;
 }
 
+#endif
