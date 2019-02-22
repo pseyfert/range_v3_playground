@@ -1,13 +1,32 @@
-#include "./someclass.h"
-#include "PrSelection.h"
-#include "SOAContainer.h"
-#include "SOAContainerSet.h"
-#include <iostream>
+/*
+ * Copyright (C) 2019  CERN for the benefit of the LHCb collaboration
+ * Author: Paul Seyfert <pseyfert@cern.ch>
+ *
+ * This software is distributed under the terms of the GNU General Public
+ * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+ *
+ * In applying this licence, CERN does not waive the privileges and immunities
+ * granted to it by virtue of its status as an Intergovernmental Organization
+ * or submit itself to any jurisdiction.
+ */
 
-#include <boost/type_index.hpp>
+#include <bits/exception.h>                // for exception
+#include <iostream>                        // for operator<<, basic_ostream
+#include <memory>                          // for allocator, allocator_trait...
+#include <string>                          // for operator<<, string
+#include <utility>                         // for move
+#include <vector>                          // for vector
+#include "./someclass.h"                   // for fitres, s_track_with_fitres
+#include "PrSelection.h"                   // for SelectionView, SelectionVi...
+#include "SOAContainer.h"                  // for Container
+#include "SOAContainerSet.h"               // for ZipContainer, semantic_zip
+#include "SOASkin.h"                       // for SOASkinCreatorSimple<>::type
+#include "SOAView.h"                       // for _View<>::reference, _View
 
 /// pythonic sugar
-#include "range/v3/all.hpp" // for pythonic range
+#include "range/v3/all.hpp" // IWYU pragma: keep
+// IWYU pragma : no_include <range/v3/view/indices.hpp>
+// IWYU pragma : no_include <range/v3/view/take_exactly.hpp>
 auto range = ranges::view::indices;
 /// end of sugar
 
@@ -18,12 +37,11 @@ void dumb_dump( const PROXY track, const std::string& greet ) {
             << track.accessor_track().y << ' ' << track.accessor_track().z << ")\n";
   std::cout << "            with p=(x,y,z): (" << track.accessor_fitres().px << ' ' << track.accessor_fitres().py << ' '
             << track.accessor_fitres().pz << ")\n\n";
-  return;
 }
 
 int main() {
-  IDedSOAContainer<SOA::Container<std::vector, s_track>>  foo1( 11 );
-  IDedSOAContainer<SOA::Container<std::vector, s_fitres>> foo2( 11 );
+  ZipContainer<SOA::Container<std::vector, s_track>>  foo1( 11 );
+  ZipContainer<SOA::Container<std::vector, s_fitres>> foo2( 11 );
   for ( auto i : range( 42 ) ) {
     track t{i / 100.f, 23.f, 1337.f, 8472.f, 3.14f};
     foo1.push_back( t );
@@ -33,9 +51,9 @@ int main() {
     foo2.push_back( fitres{100.f, 0.f, 7.f, i} );
   }
 
-  // braces just for shadowing
-  {
-    [[maybe_unused]] auto x = myzip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
+  try {
+    [[maybe_unused]] auto x =
+        semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
 
     for ( [[maybe_unused]] auto track : x ) { dumb_dump( track, "first loop" ); }
     dumb_dump( x[0], "lonely zero of main container" );
@@ -45,9 +63,12 @@ int main() {
     dumb_dump( sx[0], "lonely zero of selection" );
     for ( [[maybe_unused]] auto track : sx ) { dumb_dump( track, "selection loop" ); }
     auto expo = sx.export_selection();
+  } catch ( const std::exception& e ) {
+    std::cout << "caught UNEXPECTED exception: " << e.what() << std::endl;
+    return 1;
   }
 
-  {
+  try {
     SelectionView<decltype( foo1 )> sfoo1( foo1,
                                            []( auto&& track ) -> bool { return track.accessor_track().x >= 0.03; } );
     for ( auto track : sfoo1 ) {
@@ -56,9 +77,13 @@ int main() {
     }
 
     auto                  expo = sfoo1.export_selection();
-    [[maybe_unused]] auto x    = myzip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
+    [[maybe_unused]] auto x =
+        semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
     SelectionView<decltype( x )> sx( x, expo );
     for ( [[maybe_unused]] auto track : sx ) { dumb_dump( track, "loop with exported selection" ); }
+  } catch ( const std::exception& e ) {
+    std::cout << "caught UNEXPECTED exception: " << e.what() << std::endl;
+    return 1;
   }
 
   std::flush( std::cout );

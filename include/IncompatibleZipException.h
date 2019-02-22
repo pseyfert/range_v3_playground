@@ -12,23 +12,18 @@
 
 #ifndef IncompatibleZipException_H
 #define IncompatibleZipException_H 1
-#include <exception>             // IWYU pragma: keep
+#include <exception> // IWYU pragma: keep
 // IWYU pragma: no_include <bits/exception.h>
-#include <string>            // for string, allocator
+#include <string> // for string, allocator
+#include <string_view>  // for string_view
 
-class IncompatibleZipException final : public std::exception
-{
+class IncompatibleZipException final : public std::exception {
     std::string m_message{"unspecified failure"};
 
 public:
     IncompatibleZipException() = default;
-    IncompatibleZipException(std::string s)
-      : m_message(std::move(s))
-    {}
-    std::string message()
-    {
-        return m_message;
-    }
+    IncompatibleZipException(std::string_view&& s) : m_message(s) {}
+    std::string message() { return m_message; }
 };
 
 #endif
