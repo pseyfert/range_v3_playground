@@ -82,6 +82,10 @@ struct ExportedSelection
     }
 };
 
+// fwd declare
+template<typename T>
+struct is_IDed;
+
 /** @class SelectionView
  *
  *  TODO: update docs
@@ -91,7 +95,7 @@ struct ExportedSelection
  * contiguous storage. Defaults to uint16_t, meaning by default you can only
  * select 65536 objects...
  */
-template<typename CONTAINER, typename IndexSize = uint16_t>
+template<typename CONTAINER, typename IndexSize = uint16_t, typename = typename std::enable_if_t<is_IDed<CONTAINER>::value>>
 struct SelectionView
 {
     // TODO in optimised build we could reduce sizeof(SelectionView) by 40% by
