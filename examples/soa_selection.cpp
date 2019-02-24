@@ -17,7 +17,7 @@
 #include <utility>                         // for move
 #include <vector>                          // for vector
 #include "./someclass.h"                   // for fitres, s_track_with_fitres
-#include "PrSelection.h"                   // for SelectionView, SelectionVi...
+#include "ZipSelection.h"                   // for SelectionView, SelectionVi...
 #include "SOAContainer.h"                  // for Container
 #include "SOAContainerSet.h"               // for ZipContainer, semantic_zip
 #include "SOASkin.h"                       // for SOASkinCreatorSimple<>::type

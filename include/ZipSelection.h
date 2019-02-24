@@ -12,8 +12,8 @@
 
 // with some changes
 
-#ifndef PR_SELECTION
-#define PR_SELECTION 1
+#ifndef ZIP_SELECTION
+#define ZIP_SELECTION 1
 #include "ZipTraits.h"          // for is_IDed
 #include <algorithm>            // for is_sorted, copy_if, includes, set_di...
 #include <boost/type_index.hpp> // for type_id_with_cvr
@@ -138,6 +138,28 @@ struct SelectionView {
             return lhs.m_iter - rhs.m_iter;
         }
 
+        const_iterator operator+(difference_type n) const
+        {
+            return {m_container, m_iter+n};
+        }
+
+        const_iterator& operator-=(difference_type n) const
+        {
+            m_iter -= n;
+            return *this;
+        }
+
+        const_iterator& operator+=(difference_type n) const
+        {
+            m_iter += n;
+            return *this;
+        }
+
+        const_iterator operator-(difference_type n) const
+        {
+            return {m_container, m_iter-n};
+        }
+
         const_iterator& operator++()
         {
             ++m_iter;
@@ -258,8 +280,13 @@ struct SelectionView {
     }
 
     const_iterator begin() const { return {m_container, m_indices.begin()}; }
+    const_iterator cbegin() const { return {m_container, m_indices.cbegin()}; }
 
     const_iterator end() const { return {m_container, m_indices.end()}; }
+    const_iterator cend() const { return {m_container, m_indices.cend()}; }
+
+    proxy_type const back() const { return m_container[m_indices.back()]; }
+    proxy_type const front() const { return m_container[m_indices.front()]; }
 
     std::size_t size() const { return m_indices.size(); }
 

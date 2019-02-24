@@ -18,9 +18,13 @@
 #include "SOAView.h"                  // for zip
 #include "ZipTraits.h"
 #include "ZipUtils.h"
-#include <cassert>     // for assert
 #include <type_traits> // for remove_reference_t, enable_if_t
 #include <utility>     // for forward
+
+// for id initialization
+#define BOOST_UUID_USE_SSE41 1
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 
 template <typename FIRST, typename... OTHERS>
 int firstid(FIRST& first, OTHERS&... /*unused*/)
@@ -37,6 +41,13 @@ public:
     ZipContainer(int ID, Args&&... args)
             : CONTAINER(args...), m_identifier(ID)
     {}
+
+    ZipContainer() : CONTAINER()
+    {
+        boost::uuids::uuid tag{boost::uuids::random_generator()()};
+        m_identifier = int{(tag.data[0] << 8 * 0) + (tag.data[1] << 8 * 1) +
+                           (tag.data[2] << 8 * 2) + (tag.data[3] << 8 * 3)};
+    }
 
     template <typename T>
     auto push_back(T&& t) -> std::enable_if_t<
@@ -76,9 +87,6 @@ auto semantic_zip(IDeds&&... views) -> ZipContainer<decltype(
                             IDeds>::view>(views))...)
                 .template view<SKIN>())>
 {
-    /// maybe assert
-    assert(are_semantically_compatible(views...));
-/// or throw
 #ifndef NDEBUG
     if (!are_semantically_compatible(views...)) {
         throw IncompatibleZipException("zipping from different sets");
