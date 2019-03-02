@@ -93,16 +93,16 @@ struct ExportedSelection {
  */
 template <typename CONTAINER, typename IndexSize = uint16_t,
           typename = typename std::enable_if_t<
-                  has_semantic_zip<CONTAINER>::value>>
+                  has_semantic_zip<std::decay_t<CONTAINER>>::value>>
 struct SelectionView {
     // TODO in optimised build we could reduce sizeof(SelectionView) by 40% by
     // using a single pointer in container_t and
     //      using an index_vector type that imposes size()==capacity()
     using proxy_type =
-            typename CONTAINER::proxy; // make it easier to write generic code
+            typename std::decay_t<CONTAINER>::proxy; // make it easier to write generic code
                                        // that can handle both containers and
                                        // SelectionViews
-    using container_t = CONTAINER;
+    using container_t = std::decay_t<CONTAINER>;
     using index_vector = typename std::vector<IndexSize>;
 
     // Custom iterator class for looping through the index vector but
@@ -195,7 +195,7 @@ struct SelectionView {
      * vector of selected indices.
      */
     template <typename Predicate = details::alwaysTrue>
-    SelectionView(container_t& container, Predicate&& predicate = {},
+    SelectionView(const container_t& container, Predicate&& predicate = {},
                   int reserveCapacity = -1)
             : m_container{container}
     {
@@ -229,7 +229,7 @@ struct SelectionView {
         }
     }
 
-    SelectionView(container_t& container,
+    SelectionView(const container_t& container,
                   const ExportedSelection<IndexSize>& selection)
             : m_container{container}, m_indices{selection.m_indices}
     {
@@ -239,7 +239,7 @@ struct SelectionView {
                     "meaningful!");
         }
     }
-    SelectionView(container_t& container,
+    SelectionView(const container_t& container,
                   ExportedSelection<IndexSize>& selection)
             : m_container{container}, m_indices{selection.m_indices}
     {
