@@ -10,23 +10,24 @@
  * or submit itself to any jurisdiction.
  */
 
-#include <bits/exception.h>                // for exception
-#include <iostream>                        // for operator<<, basic_ostream
-#include <memory>                          // for allocator, allocator_trait...
-#include <string>                          // for operator<<, string
-#include <utility>                         // for move
-#include <vector>                          // for vector
-#include "./someclass.h"                   // for fitres, s_track_with_fitres
-#include "ZipSelection.h"                   // for SelectionView, SelectionVi...
-#include "SOAContainer.h"                  // for Container
-#include "SOAContainerSet.h"               // for ZipContainer, semantic_zip
-#include "SOASkin.h"                       // for SOASkinCreatorSimple<>::type
-#include "SOAView.h"                       // for _View<>::reference, _View
+#include "./someclass.h"     // for fitres, s_track_with_fitres
+#include "SOAContainer.h"    // for Container
+#include "SOAContainerSet.h" // IWYU pragma: keep
+#include "SOASkin.h"         // for SOASkinCreatorSimple<>::type
+#include "SOAView.h"         // for _View<>::reference, _View
+#include "ZipSelection.h"    // for SelectionView, SelectionVi...
+#include <bits/exception.h>  // for exception
+#include <iostream>          // for operator<<, basic_ostream
+#include <memory>            // for allocator, allocator_trait...
+#include <string>            // for operator<<, string
+#include <utility>           // for move
+#include <vector>            // for vector
 
 /// pythonic sugar
 #include "range/v3/all.hpp" // IWYU pragma: keep
-// IWYU pragma : no_include <range/v3/view/indices.hpp>
-// IWYU pragma : no_include <range/v3/view/take_exactly.hpp>
+// IWYU pragma: no_include <range/v3/view/indices.hpp>
+// IWYU pragma: no_include <range/v3/view/take_exactly.hpp>
+
 auto range = ranges::view::indices;
 /// end of sugar
 
@@ -40,8 +41,8 @@ void dumb_dump( const PROXY track, const std::string& greet ) {
 }
 
 int main() {
-  ZipContainer<SOA::Container<std::vector, s_track>>  foo1( 11 );
-  ZipContainer<SOA::Container<std::vector, s_fitres>> foo2( 11 );
+  ZipContainer<SOA::Container<std::vector, s_track>>  foo1{};
+  ZipContainer<SOA::Container<std::vector, s_fitres>> foo2( foo1.zipIdentifier() );
   for ( auto i : range( 42 ) ) {
     track t{i / 100.f, 23.f, 1337.f, 8472.f, 3.14f};
     foo1.push_back( t );

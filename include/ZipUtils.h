@@ -12,9 +12,9 @@
 
 #ifndef ZipUtils_H
 #define ZipUtils_H 1
-#include <type_traits>  // for enable_if_t
-#include "SOAUtils.h"   // for ALL
-#include "ZipTraits.h"  // IWYU pragma: keep
+#include "SOAUtils.h"  // for ALL
+#include "ZipTraits.h" // IWYU pragma: keep
+#include <type_traits> // for enable_if_t
 
 template <typename FIRST, typename SECOND, typename... OTHERS,
           typename = typename std::enable_if_t<SOA::Utils::ALL(
@@ -23,7 +23,7 @@ template <typename FIRST, typename SECOND, typename... OTHERS,
 bool are_semantically_compatible(FIRST& first, SECOND& second,
                                  OTHERS&... others)
 {
-    return (first.ZipIdentifier() == second.ZipIdentifier()) &&
+    return (first.zipIdentifier() == second.zipIdentifier()) &&
            (are_semantically_compatible(first, others...));
 }
 

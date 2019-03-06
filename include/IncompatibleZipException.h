@@ -22,7 +22,7 @@ class IncompatibleZipException final : public std::exception {
 
 public:
     IncompatibleZipException() = default;
-    IncompatibleZipException(std::string_view&& s) : m_message(s) {}
+  IncompatibleZipException( std::string_view&& s ) : m_message( s ) {}
     std::string message() { return m_message; }
 };
 

@@ -18,18 +18,35 @@
 #include "SOAView.h"                  // for zip
 #include "ZipTraits.h"
 #include "ZipUtils.h"
+#include <atomic>
 #include <type_traits> // for remove_reference_t, enable_if_t
 #include <utility>     // for forward
+#include <cstdint>     // IWYU pragma: keep
+// IWYU pragma: no_include <bits/stdint-uintn.h>
 
-// for id initialization
-#define BOOST_UUID_USE_SSE41 1
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
+namespace details {
+    template <typename T, typename Tag>
+    struct tagged_type {
+        explicit tagged_type(T t) : value(std::move(t)) {}
+        T value;
+        operator T() const { return value; }
+    };
+} // namespace details
+using ZipID = details::tagged_type<uint64_t, struct ZipIDTag>;
+namespace details {
+    class ZipIdProvider {
+    private:
+        inline static std::atomic_uint64_t generator;
+
+    public:
+        static ZipID getId() { return ZipID(generator.fetch_add(1)); }
+    };
+} // namespace details
 
 template <typename FIRST, typename... OTHERS>
-int firstid(FIRST& first, OTHERS&... /*unused*/)
+ZipID firstid(FIRST& first, OTHERS&... /*unused*/)
 {
-    return first.ZipIdentifier();
+    return first.zipIdentifier();
 }
 
 template <typename CONTAINER>
@@ -38,16 +55,13 @@ public:
     using view = CONTAINER;
 
     template <typename... Args>
-    ZipContainer(int ID, Args&&... args)
+    ZipContainer(ZipID ID, Args&&... args)
             : CONTAINER(args...), m_identifier(ID)
     {}
 
-    ZipContainer() : CONTAINER()
-    {
-        boost::uuids::uuid tag{boost::uuids::random_generator()()};
-        m_identifier = int{(tag.data[0] << 8 * 0) + (tag.data[1] << 8 * 1) +
-                           (tag.data[2] << 8 * 2) + (tag.data[3] << 8 * 3)};
-    }
+    ZipContainer()
+            : CONTAINER(), m_identifier(details::ZipIdProvider::getId())
+    {}
 
     template <typename T>
     auto push_back(T&& t) -> std::enable_if_t<
@@ -69,10 +83,10 @@ public:
     }
 
 private:
-    int m_identifier;
+    ZipID m_identifier;
 
 public:
-    int ZipIdentifier() const { return m_identifier; }
+    ZipID zipIdentifier() const { return m_identifier; }
 };
 
 template <
@@ -81,11 +95,7 @@ template <
                 SOA::impl::is_skin<SKIN>(),
                 has_semantic_zip<typename std::remove_cv_t<
                         typename std::remove_reference_t<IDeds>>>::value...)>>
-auto semantic_zip(IDeds&&... views) -> ZipContainer<decltype(
-        zip(std::forward<typename std::remove_reference_t<IDeds>::view>(
-                    static_cast<typename std::remove_reference_t<
-                            IDeds>::view>(views))...)
-                .template view<SKIN>())>
+auto semantic_zip(IDeds&&... views)
 {
 #ifndef NDEBUG
     if (!are_semantically_compatible(views...)) {
@@ -93,13 +103,34 @@ auto semantic_zip(IDeds&&... views) -> ZipContainer<decltype(
     }
 #endif
 
-    auto encapsulated_zip =
-            zip(std::forward<typename std::remove_reference_t<IDeds>::view>(
-                        static_cast<typename std::remove_reference_t<
-                                IDeds>::view>(views))...)
-                    .template view<SKIN>();
-    return ZipContainer<decltype(encapsulated_zip)>(firstid(views...),
-                                                    encapsulated_zip);
+    using barezip = decltype(zip<
+                             SKIN,
+                             typename std::conditional_t<
+                                     std::is_reference_v<IDeds>,
+                                     const typename std::remove_reference_t<
+                                             IDeds>::view&,
+                                     const typename std::remove_reference_t<
+                                             IDeds>::view>...>(
+            std::forward<typename std::conditional_t<
+                    std::is_reference_v<IDeds>,
+                    const typename std::remove_reference_t<IDeds>::view&,
+                    const typename std::remove_reference_t<IDeds>::view>>(
+                    views)...));
+
+    return ZipContainer<barezip>(
+            firstid(views...),
+            zip<SKIN,
+                typename std::conditional_t<
+                        std::is_reference_v<IDeds>,
+                        const typename std::remove_reference_t<IDeds>::view&,
+                        const typename std::remove_reference_t<
+                                IDeds>::view>...>(
+                    std::forward<typename std::conditional_t<
+                            std::is_reference_v<IDeds>,
+                            const typename std::remove_reference_t<
+                                    IDeds>::view&,
+                            const typename std::remove_reference_t<
+                                    IDeds>::view>>(views)...));
 }
 
 #endif

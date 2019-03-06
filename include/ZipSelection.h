@@ -31,6 +31,7 @@
 // IWYU pragma: no_include <bits/exception.h>
 #include <cstdint> // IWYU pragma: keep
 // IWYU pragma: no_include <bits/stdint-uintn.h>
+#include "SOAContainerSet.h"    // IWYU pragma: export
 
 #ifdef __GNUC__
 #define LIKELY(x) __builtin_expect((x), 1)
@@ -78,8 +79,8 @@ template <typename IndexSize = uint16_t>
 struct ExportedSelection {
     using index_vector = typename std::vector<IndexSize>;
     index_vector m_indices;
-    int m_identifier;
-    int ZipIdentifier() const { return m_identifier; }
+    ZipID m_identifier;
+    ZipID zipIdentifier() const { return m_identifier; }
 };
 
 /** @class SelectionView
@@ -98,10 +99,10 @@ struct SelectionView {
     // TODO in optimised build we could reduce sizeof(SelectionView) by 40% by
     // using a single pointer in container_t and
     //      using an index_vector type that imposes size()==capacity()
-    using proxy_type =
-            typename std::decay_t<CONTAINER>::proxy; // make it easier to write generic code
-                                       // that can handle both containers and
-                                       // SelectionViews
+    using proxy_type = typename std::decay_t<
+            CONTAINER>::proxy; // make it easier to write generic code
+                               // that can handle both containers and
+                               // SelectionViews
     using container_t = std::decay_t<CONTAINER>;
     using index_vector = typename std::vector<IndexSize>;
 
@@ -140,7 +141,7 @@ struct SelectionView {
 
         const_iterator operator+(difference_type n) const
         {
-            return {m_container, m_iter+n};
+            return {m_container, m_iter + n};
         }
 
         const_iterator& operator-=(difference_type n) const
@@ -157,7 +158,7 @@ struct SelectionView {
 
         const_iterator operator-(difference_type n) const
         {
-            return {m_container, m_iter-n};
+            return {m_container, m_iter - n};
         }
 
         const_iterator& operator++()
@@ -178,7 +179,7 @@ struct SelectionView {
 
     ExportedSelection<IndexSize> export_selection()
     {
-        return {m_indices, m_container.ZipIdentifier()};
+        return {m_indices, m_container.zipIdentifier()};
     }
 
     /** Constructor creating a SelectionView from a contiguous storage
@@ -233,7 +234,7 @@ struct SelectionView {
                   const ExportedSelection<IndexSize>& selection)
             : m_container{container}, m_indices{selection.m_indices}
     {
-        if (selection.ZipIdentifier() != container.ZipIdentifier()) {
+        if (selection.zipIdentifier() != container.zipIdentifier()) {
             throw NotGaudiException(
                     "incompatible selection!!!! ahahah write something more "
                     "meaningful!");
@@ -243,7 +244,7 @@ struct SelectionView {
                   ExportedSelection<IndexSize>& selection)
             : m_container{container}, m_indices{selection.m_indices}
     {
-        if (selection.ZipIdentifier() != container.ZipIdentifier()) {
+        if (selection.zipIdentifier() != container.zipIdentifier()) {
             throw NotGaudiException(
                     "incompatible selection!!!! ahahah write something more "
                     "meaningful!");
@@ -263,8 +264,8 @@ struct SelectionView {
      * vector of selected indices.
      */
     template <typename Predicate>
-    SelectionView(SelectionView const& old_selection, Predicate&& predicate,
-                  int reserveCapacity = -1)
+    SelectionView(SelectionView const& old_selection,
+                  const Predicate& predicate, int reserveCapacity = -1)
             : m_container{old_selection.m_container}
     {
         // It's imposed that old_selection has the same IndexSize as us, so we
@@ -274,13 +275,15 @@ struct SelectionView {
                                               : reserveCapacity);
         std::copy_if(old_selection.m_indices.begin(),
                      old_selection.m_indices.end(),
-                     std::back_inserter(m_indices), [&](auto i) {
-                         return std::invoke(predicate, m_container[i]);
-                     });
+                     std::back_inserter(m_indices),
+                     [&](auto i) { return predicate(m_container[i]); });
     }
 
     const_iterator begin() const { return {m_container, m_indices.begin()}; }
-    const_iterator cbegin() const { return {m_container, m_indices.cbegin()}; }
+    const_iterator cbegin() const
+    {
+        return {m_container, m_indices.cbegin()};
+    }
 
     const_iterator end() const { return {m_container, m_indices.end()}; }
     const_iterator cend() const { return {m_container, m_indices.cend()}; }

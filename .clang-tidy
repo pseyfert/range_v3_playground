@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,performance*,bugprone*,clang*,cppcore*,google*,hicpp*,modernize*,readability*'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,performance*,bugprone*,clang*,cppcore*,google*,hicpp*,modernize*,readability*,-google-explicit-constructor,-hicpp-explicit-conversions'
 WarningsAsErrors: ''
 HeaderFilterRegex: 'SOAContainerSet.h|PrSelection.h|IncompatibleZipException.h|ZipTraits.h|ZipUtils.h'
 AnalyzeTemporaryDtors: false
