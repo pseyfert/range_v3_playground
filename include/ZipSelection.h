@@ -113,7 +113,7 @@ struct SelectionView {
         using difference_type = typename index_iter_type::difference_type;
         using iterator_category = std::random_access_iterator_tag;
 
-        container_t& m_container;
+        const container_t& m_container;
         index_iter_type m_iter;
 
         value_type const operator*() const { return m_container[*m_iter]; }
@@ -173,7 +173,7 @@ struct SelectionView {
         }
     };
 
-    container_t& m_container;
+    const container_t& m_container;
     index_vector m_indices;
 
     ExportedSelection<IndexSize> export_selection()
