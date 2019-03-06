@@ -1,0 +1,25 @@
+# Copyright (C) 2019  CERN for the benefit of the LHCb collaboration
+# Author: Paul Seyfert <pseyfert@cern.ch>
+#
+# This software is distributed under the terms of the GNU General Public
+# Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+#
+# In applying this licence, CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
+language: cpp
+compiler: gcc
+
+install:
+  - sudo apt update
+  - sudo apt install clang-tidy iwyu cmake
+
+script:
+  - mkdir build
+  - cd build
+  - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fdiagnostics-color -Wextra -Wall -Wshadow" ..
+  - cmake --build .
+  - cd ..
+  - iwyu_tool.py -p build examples/soa_* -- --check_also=../include/SOAContainerSet.h --check_also=../include/ZipSelection.h --check_also=../include/IncompatibleZipException.h --check_also=../include/ZipTraits.h --check_also=../include/ZipUtils.h
+  - clang-tidy -p=build examples/soa*
