@@ -19,8 +19,9 @@ install:
 script:
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fdiagnostics-color -Wextra -Wall -Wshadow" ..
+  - cmake -DRUN_TESTS=ON -DBUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fdiagnostics-color -Wextra -Wall -Wshadow" ..
   - cmake --build .
+  - ctest
   - cd ..
   - iwyu_tool.py -p build examples/soa_* -- --check_also=../include/SOAContainerSet.h --check_also=../include/ZipSelection.h --check_also=../include/IncompatibleZipException.h --check_also=../include/ZipTraits.h --check_also=../include/ZipUtils.h
   - clang-tidy -p=build examples/soa*
