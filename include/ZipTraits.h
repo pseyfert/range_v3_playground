@@ -12,20 +12,28 @@
 
 #ifndef ZipTraits_h
 #define ZipTraits_h 1
-#include "SOAUtils.h" // for is_view
-#include <type_traits>  // for decay_t
+#include "SOAUtils.h"  // for is_view
+#include <type_traits> // for decay_t
 template <typename CONTAINER>
 class ZipContainer;
 
+namespace details {
+    template <typename T>
+    struct has_semantic_zip_helper {
+        static constexpr bool value = false;
+    };
+
+    template <typename VIEW>
+    struct has_semantic_zip_helper<ZipContainer<VIEW>> {
+        static constexpr bool value =
+                SOA::Utils::is_view<std::decay_t<VIEW>>::value;
+    };
+} // namespace details
 template <typename T>
 struct has_semantic_zip {
-    bool value = false;
-};
-
-template <typename VIEW>
-struct has_semantic_zip<ZipContainer<VIEW>> {
+  // remove const and reference from ZipContainer before going one level deeper
     static constexpr bool value =
-            SOA::Utils::is_view<std::decay_t<VIEW>>::value;
+            details::has_semantic_zip_helper<std::decay_t<T>>::value;
 };
 
 template <typename VIEW>
