@@ -13,6 +13,8 @@ project(masked_range VERSION 0.0 LANGUAGES CXX)
 
 # most of this file largely inspired by https://github.com/pabloariasal/modern-cmake-sample
 
+# TODO fixup installs
+
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 

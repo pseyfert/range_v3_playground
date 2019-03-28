@@ -58,10 +58,10 @@ int main() {
 
     for ( [[maybe_unused]] auto track : x ) { dumb_dump( track, "first loop" ); }
     dumb_dump( x[0], "lonely zero of main container" );
-    Zipping::ExportedSelection<> se = Zipping::makeSelection( x, []( auto&& track ) -> bool {
+    Zipping::ExportedSelection<> se = Zipping::makeSelection( &x, []( auto&& track ) -> bool {
       return track.accessor_track().x >= 0.02 && ( track.accessor_fitres().q % 2 ) == 1;
     } );
-    Zipping::SelectionView       sx( x, se );
+    Zipping::SelectionView       sx( &x, se );
 
     dumb_dump( sx[0], "lonely zero of selection" );
     for ( [[maybe_unused]] auto track : sx ) { dumb_dump( track, "selection loop" ); }
@@ -73,9 +73,9 @@ int main() {
 
   try {
     Zipping::ExportedSelection<> sfoo1e =
-        Zipping::makeSelection( foo1, []( auto&& track ) -> bool { return track.accessor_track().x >= 0.03; } );
+        Zipping::makeSelection( &foo1, []( auto&& track ) -> bool { return track.accessor_track().x >= 0.03; } );
 
-    Zipping::SelectionView<decltype( foo1 )> sfoo1( foo1, sfoo1e );
+    Zipping::SelectionView<decltype( foo1 )> sfoo1( &foo1, sfoo1e );
     for ( auto track : sfoo1 ) {
       std::cout << "small track part " << track.accessor_track().x << ' ' << track.accessor_track().y << ' '
                 << track.accessor_track().z << '\n';
@@ -84,7 +84,7 @@ int main() {
     auto                  expo = sfoo1.export_selection();
     [[maybe_unused]] auto x =
         Zipping::semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
-    Zipping::SelectionView<decltype( x )> sx( x, expo );
+    Zipping::SelectionView<decltype( x )> sx( &x, expo );
     for ( [[maybe_unused]] auto track : sx ) { dumb_dump( track, "loop with exported selection" ); }
   } catch ( const std::exception& e ) {
     std::cout << "caught UNEXPECTED exception: " << e.what() << std::endl;

@@ -21,6 +21,8 @@ struct track {
   float z;
   float tx;
   float ty;
+  bool operator==(const track& other) const { return &other == this; }
+  bool operator!=(const track& other) const { return &other != this; }
 };
 
 SOAFIELD_TRIVIAL( f_track, accessor_track, track );
@@ -31,6 +33,8 @@ struct fitres {
   float py;
   float pz;
   int   q;
+  bool operator==(const fitres& other) const { return &other == this; }
+  bool operator!=(const fitres& other) const { return &other != this; }
 };
 
 SOAFIELD_TRIVIAL( f_fitres, accessor_fitres, fitres );
@@ -39,6 +43,8 @@ SOASKIN_TRIVIAL( s_fitres, f_fitres );
 struct fitqual {
   float chi2;
   int   dof;
+  bool operator==(const fitqual& other) const { return &other == this; }
+  bool operator!=(const fitqual& other) const { return &other != this; }
 };
 
 SOAFIELD_TRIVIAL( f_fitqual, accessor_fitqual, fitqual );

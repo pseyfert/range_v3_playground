@@ -47,8 +47,8 @@ namespace Zipping {
 
     // The only thing ZipFamilyNumbers need to provide is equality comparison. No meaning is attributed to greater or
     // smaller.
-    bool operator==( const ZipFamilyNumber other ) { return m_value == other.m_value; }
-    bool operator!=( const ZipFamilyNumber other ) { return m_value != other.m_value; }
+    bool operator==( const ZipFamilyNumber other ) const { return m_value == other.m_value; }
+    bool operator!=( const ZipFamilyNumber other ) const { return m_value != other.m_value; }
   };
 
   namespace details {

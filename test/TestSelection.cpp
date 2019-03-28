@@ -38,6 +38,7 @@ struct track {
   float                tx;
   float                ty;
   friend bool          operator==( const track& lhs, const track& rhs ) { return &lhs == &rhs; }
+  friend bool          operator!=( const track& lhs, const track& rhs ) { return &lhs != &rhs; }
   friend std::ostream& operator<<( std::ostream& stream, const track& t ) {
     char buf[100];
     snprintf( buf, 99, "track at (%#8.2f, %#8.2f, %#8.2f)", t.x, t.y, t.z );
@@ -55,6 +56,7 @@ struct fitres {
   float                pz;
   int                  q;
   friend bool          operator==( const fitres& lhs, const fitres& rhs ) { return &lhs == &rhs; }
+  friend bool          operator!=( const fitres& lhs, const fitres& rhs ) { return &lhs != &rhs; }
   friend std::ostream& operator<<( std::ostream& stream, const fitres& t ) {
     char buf[100];
     snprintf( buf, 99, "momentum = (%#8.2f, %#8.2f, %#8.2f), charge %d", t.px, t.py, t.pz, t.q );
@@ -70,7 +72,8 @@ struct fitqual {
   float       chi2;
   int         dof;
   friend bool operator==( const fitqual& lhs, const fitqual& rhs ) {
-    return lhs.dof == rhs.dof && ( std::abs( lhs.chi2 - rhs.chi2 ) / ( lhs.chi2 + rhs.chi2 ) < 0.01 );
+    return lhs.dof == rhs.dof && ( ( std::abs( lhs.chi2 - rhs.chi2 ) / ( lhs.chi2 + rhs.chi2 ) < 0.01 ) ||
+                                   ( std::abs( lhs.chi2 ) < 0.01 && std::abs( rhs.chi2 ) < 0.01 ) );
   }
   friend std::ostream& operator<<( std::ostream& stream, const fitqual& t ) {
     char buf[100];
@@ -114,9 +117,11 @@ BOOST_AUTO_TEST_CASE( smart_test_name_goes_here ) {
   [[maybe_unused]] auto yet_another_full_track = Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( full_track );
 
   Zipping::ExportedSelection<> selected_tracks_exported =
-      Zipping::makeSelection( track_with_momentum, []( auto i ) { return 0 == i.accessor_fitres().q % 2; } );
-  Zipping::SelectionView<decltype( track_with_momentum )> selected_tracks( track_with_momentum,
+      Zipping::makeSelection( &track_with_momentum, []( auto i ) { return 0 == i.accessor_fitres().q % 2; } );
+  Zipping::SelectionView<decltype( track_with_momentum )> selected_tracks( &track_with_momentum,
                                                                            selected_tracks_exported );
+  auto                                                    tmp = selected_tracks.export_selection();
+  BOOST_CHECK( selected_tracks_exported == tmp );
 
   BOOST_CHECK_EQUAL( selected_tracks.size(), track_with_momentum.size() / 2 );
 
@@ -152,4 +157,74 @@ BOOST_AUTO_TEST_CASE( smart_test_name_goes_here ) {
 
   BOOST_CHECK( std::is_sorted( track_with_momentum.begin(), track_with_momentum.end(),
                                []( auto t1, auto t2 ) { return t1.accessor_fitres().py < t2.accessor_fitres().py; } ) );
+}
+
+BOOST_AUTO_TEST_CASE( stlalgs ) {
+  Zipping::ZipContainer<SOA::Container<std::vector, s_track>>   foo1;
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>>  foo2( foo1.zipIdentifier() );
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitqual>> foo3( foo1.zipIdentifier() );
+  for ( auto i : range( 42 ) ) {
+    track t{i * 100.f, i * 2.f, ( 42 - i ) * 100.f, 0.f, 0.f};
+    foo1.push_back( t );
+    foo2.push_back( fitres{0.f, 0.f, i * 100.f, i} );
+    foo3.push_back( fitqual{0.f, i} );
+  }
+
+  auto                         foo_all = Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( foo1, foo2, foo3 );
+  Zipping::ExportedSelection<> e =
+      Zipping::makeSelection( &foo_all, []( auto f ) { return f.accessor_fitres().q % 2 == 0; } );
+  Zipping::SelectionView foo_sel( &foo_all, e );
+
+  auto found = std::find( foo_all.begin(), foo_all.end(), foo_all[3] );
+  BOOST_CHECK_NE( found, foo_all.end() );
+
+  auto founds = std::find( foo_sel.begin(), foo_sel.end(), foo_sel[2] );
+  BOOST_CHECK( founds != foo_sel.end() );
+
+  found = std::find( foo_all.begin(), foo_all.end(), foo_sel[2] );
+  BOOST_CHECK_NE( found, foo_all.end() );
+
+  for ( auto selected_element : foo_sel ) {
+    found = std::find( foo_all.begin(), foo_all.end(), selected_element );
+    BOOST_CHECK_NE( found, foo_all.end() );
+  }
+  bool prev = true;
+  bool init = false;
+  for ( auto element : foo_all ) {
+    bool found_ = ( foo_sel.end() == std::find( foo_sel.begin(), foo_sel.end(), element ) );
+    if ( !init ) prev = !found_;
+    BOOST_CHECK_NE( found_, prev );
+    prev = found_;
+  }
+}
+
+BOOST_AUTO_TEST_CASE( set_operations ) {
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>> foo2;
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>> foo2_alt;
+  for ( auto i : range( 42 ) ) {
+    foo2.push_back( fitres{0.f, 0.f, i * 100.f, i} );
+    foo2_alt.push_back( fitres{0.f, 0.f, i * 100.f, i} );
+  }
+
+  Zipping::ExportedSelection<> sel1 =
+      Zipping::makeSelection( &foo2, []( auto i ) { return 0 == i.accessor_fitres().q % 2; } );
+  Zipping::ExportedSelection<> sel2 =
+      Zipping::makeSelection( &foo2, []( auto i ) { return 0 == i.accessor_fitres().q % 3; } );
+  Zipping::ExportedSelection<> sel1_alt =
+      Zipping::makeSelection( &foo2_alt, []( auto i ) { return 0 == i.accessor_fitres().q % 2; } );
+
+  auto commahider = [&]( auto sel ) { return Zipping::SelectionView{&foo2, sel}; };
+
+  BOOST_CHECK_THROW( commahider( sel1_alt ), GaudiException );
+
+  Zipping::SelectionView tmp( &foo2, sel1 );
+
+  auto union_       = set_union( sel1, sel2 );
+  auto intersection = set_intersection( sel1, sel2 );
+  auto symdiff      = set_symmetric_difference( sel1, sel2 );
+
+  auto commahider2 = [&]() { return set_union( sel2, sel1_alt ); };
+
+  BOOST_CHECK_THROW( commahider2(), GaudiException );
+  BOOST_CHECK( includes( sel1, intersection ) );
 }

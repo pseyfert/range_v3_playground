@@ -34,6 +34,7 @@
 // IWYU pragma: no_include <bits/stdint-uintn.h>
 #include "GaudiKernel/GaudiException.h"
 #include "SOAExtensions/ZipContainer.h" // IWYU pragma: keep
+#include <gsl/pointers>
 
 namespace Zipping {
 
@@ -44,20 +45,6 @@ namespace Zipping {
 
     template <typename T>
     inline auto const typename_v = boost::typeindex::type_id_with_cvr<T>().pretty_name();
-
-    template <typename S>
-    void check_for_set_operation( S const& s1, S const& s2, const char* msg_prefix ) {
-      if ( UNLIKELY( s1.m_container.data() != s2.m_container.data() ) ) {
-        throw GaudiException{std::string{msg_prefix} +
-                                 "(SelectionView, SelectionView) was "
-                                 "given views to different "
-                                 "underlying storage." +
-                                 typename_v<S>,
-                             typename_v<S>, StatusCode::FAILURE};
-      }
-      assert( std::is_sorted( s1.m_indices.begin(), s1.m_indices.end() ) );
-      assert( std::is_sorted( s2.m_indices.begin(), s2.m_indices.end() ) );
-    }
   } // namespace details
 
   /** @class ExportedSelection ZipSelection.h
@@ -83,28 +70,36 @@ namespace Zipping {
 
     // alwaysFalse is not default'ed here to make the default explicit at call side.
     // no True option available in this option
-    ExportedSelection( ZipFamilyNumber id, Zipping::details::alwaysFalse /*only for type, value unused*/) : m_family_id( id ) {}
+    ExportedSelection( ZipFamilyNumber id, Zipping::details::alwaysFalse /*only for type, value unused*/ )
+        : m_family_id( id ) {}
 
     template <typename CONTAINER,
               typename = typename std::enable_if_t<has_semantic_zip<std::decay_t<CONTAINER>>::value>>
-    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysFalse /*only for type, value unused*/)
+    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysFalse /*only for type, value unused*/ )
         : m_family_id{container.zipIdentifier()} {}
 
     template <typename CONTAINER,
               typename = typename std::enable_if_t<has_semantic_zip<std::decay_t<CONTAINER>>::value>>
-    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysTrue /*only for type, value unused*/)
+    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysTrue /*only for type, value unused*/ )
         : m_family_id{container.zipIdentifier()}, m_indices( container.size(), IndexSize{} ) {
       std::iota( m_indices.begin(), m_indices.end(), 0 );
     }
 
     // copy/move constructors, kept here to let the compiler complain should they ever get disabled accidentially
     ExportedSelection( const ExportedSelection& other ) = default;
-    ExportedSelection( ExportedSelection&& other ) noexcept(std::is_nothrow_move_constructible<index_vector>::value) = default;
-    ~ExportedSelection() = default;
-    ExportedSelection& operator=(const ExportedSelection&) = default;
-    ExportedSelection& operator=(ExportedSelection&&) noexcept(std::is_nothrow_move_constructible<index_vector>::value) = default;
+    ExportedSelection( ExportedSelection&& other ) noexcept( std::is_nothrow_move_constructible<index_vector>::value ) =
+        default;
+    ~ExportedSelection()       = default;
+    ExportedSelection& operator=( const ExportedSelection& ) = default;
+    ExportedSelection&
+    operator=( ExportedSelection&& ) noexcept( std::is_nothrow_move_constructible<index_vector>::value ) = default;
+
+    bool operator==( const ExportedSelection& other ) const {
+      return m_family_id == other.m_family_id && m_indices == other.m_indices;
+    }
 
     // direct data construction
+    // NB: INDEX_VECTOR may be const
     template <typename INDEX_VECTOR,
               typename = typename std::enable_if_t<std::is_same_v<std::decay_t<INDEX_VECTOR>, index_vector>>>
     ExportedSelection( INDEX_VECTOR&& indices, const ZipFamilyNumber id )
@@ -112,7 +107,88 @@ namespace Zipping {
 
     ZipFamilyNumber zipIdentifier() const { return m_family_id; }
 
-    std::size_t size() { return m_indices.size(); }
+    std::size_t size() const { return m_indices.size(); }
+    bool        empty() const { return m_indices.empty(); }
+
+    friend ExportedSelection set_intersection( ExportedSelection const& s1, ExportedSelection const& s2 ) {
+#ifndef DNDEBUG
+      if ( s1.zipIdentifier() != s2.zipIdentifier() ) {
+        throw GaudiException( "Performing set intersection on different container families.",
+                              details::typename_v<ExportedSelection<>>, StatusCode::FAILURE );
+      }
+#endif
+      ExportedSelection<> retval{s1.zipIdentifier(), Zipping::details::alwaysFalse{}};
+      retval.m_indices.reserve( std::min( s1.size(), s2.size() ) );
+      // Use std::set_intersection to combine s1.m_indices and s2.m_indices into a new index container
+      std::set_intersection( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
+                             std::back_inserter( retval.m_indices ) );
+      return retval;
+    }
+
+    friend ExportedSelection set_union( ExportedSelection const& s1, ExportedSelection const& s2 ) {
+#ifndef DNDEBUG
+      if ( s1.zipIdentifier() != s2.zipIdentifier() ) {
+        throw GaudiException( "Performing set union on different container families.",
+                              details::typename_v<ExportedSelection<>>, StatusCode::FAILURE );
+      }
+#endif
+      if ( s1.empty() ) { return s2; }
+      if ( s2.empty() ) { return s1; }
+
+      ExportedSelection<> retval{s1.zipIdentifier(), Zipping::details::alwaysFalse{}};
+      std::size_t         est_csize = std::max( s1.m_indices.back(), s2.m_indices.back() ) + 1;
+      retval.m_indices.reserve( std::min( est_csize, s1.size() + s2.size() ) );
+      // Use std::set_union to combine s1.m_indices and s2.m_indices into a new index container
+      std::set_union( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
+                      std::back_inserter( retval.m_indices ) );
+      return retval;
+    }
+
+    friend ExportedSelection set_difference( ExportedSelection const& s1, ExportedSelection const& s2 ) {
+#ifndef DNDEBUG
+      if ( s1.zipIdentifier() != s2.zipIdentifier() ) {
+        throw GaudiException( "Performing set difference on different container families.",
+                              details::typename_v<ExportedSelection<>>, StatusCode::FAILURE );
+      }
+#endif
+      if ( s2.empty() ) { return s1; }
+
+      ExportedSelection<> retval{s1.zipIdentifier(), Zipping::details::alwaysFalse{}};
+      retval.m_indices.reserve( s1.size() );
+      // Use std::set_difference to combine s1.m_indices and s2.m_indices into a new index container
+      std::set_difference( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
+                           std::back_inserter( retval.m_indices ) );
+      return retval;
+    }
+
+    friend ExportedSelection set_symmetric_difference( ExportedSelection const& s1, ExportedSelection const& s2 ) {
+#ifndef DNDEBUG
+      if ( s1.zipIdentifier() != s2.zipIdentifier() ) {
+        throw GaudiException( "Performing set symmetric difference on different container families.",
+                              details::typename_v<ExportedSelection<>>, StatusCode::FAILURE );
+      }
+#endif
+      if ( s1.empty() ) { return s2; }
+      if ( s2.empty() ) { return s1; }
+
+      ExportedSelection<> retval{s1.zipIdentifier(), Zipping::details::alwaysFalse{}};
+      std::size_t         est_csize = std::max( s1.m_indices.back(), s2.m_indices.back() ) + 1;
+      retval.m_indices.reserve( std::min( est_csize, s1.size() + s2.size() ) );
+      // Use std::set_symmetric_difference to combine s1.m_indices and s2.m_indices into a new index container
+      std::set_symmetric_difference( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
+                                     std::back_inserter( retval.m_indices ) );
+      return retval;
+    }
+
+    friend bool includes( ExportedSelection const& s1, ExportedSelection const& s2 ) {
+#ifndef DNDEBUG
+      if ( s1.zipIdentifier() != s2.zipIdentifier() ) {
+        throw GaudiException( "Performing set includes on different container families.",
+                              details::typename_v<ExportedSelection<>>, StatusCode::FAILURE );
+      }
+#endif
+      return std::includes( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end() );
+    }
   };
 
   /** @class SelectionView
@@ -149,8 +225,8 @@ namespace Zipping {
     using index_vector = typename std::vector<IndexSize>;
 
     // data members
-    const container_t&  m_container;
-    const index_vector& m_indices;
+    gsl::not_null<const container_t*>  m_container;
+    gsl::not_null<const index_vector*> m_indices;
 
     // Custom iterator class for looping through the index vector but
     // dereferencing to values in the actual container
@@ -160,17 +236,16 @@ namespace Zipping {
       using difference_type   = typename index_iter_type::difference_type;
       using iterator_category = std::random_access_iterator_tag;
       // FIXME: provide these to enable STL algorithms
-      // using pointer           = typename CONTAINER::proxy*;   // for iterator_traits
-      // using reference         = typename CONTAINER::proxy&;   // for iterator_traits
+      using pointer   = const value_type*; // for iterator_traits
+      using reference = const value_type&; // for iterator_traits
 
-      const container_t& m_container;
-      index_iter_type    m_iter;
+      gsl::not_null<const container_t*> m_container;
+      index_iter_type                   m_iter;
 
-      value_type const operator*() const { return m_container[*m_iter]; }
+      value_type const operator*() const { return ( *m_container )[*m_iter]; }
 
       friend bool operator==( const_iterator const& lhs, const_iterator const& rhs ) {
-        // TODO: CHECKME
-        return &( lhs.m_container ) == &( rhs.m_container ) && lhs.m_iter == rhs.m_iter;
+        return lhs.m_container == rhs.m_container && lhs.m_iter == rhs.m_iter;
       }
 
       friend bool operator!=( const_iterator const& lhs, const_iterator const& rhs ) { return !( lhs == rhs ); }
@@ -205,40 +280,40 @@ namespace Zipping {
     };
 
     ExportedSelection<IndexSize> export_selection() {
-      return ExportedSelection<IndexSize>{m_indices, m_container.zipIdentifier()};
+      return ExportedSelection<IndexSize>( *m_indices, m_container->zipIdentifier() );
     }
 
-    SelectionView( const container_t& container, const ExportedSelection<IndexSize>& selection )
-        : m_container{container}, m_indices{selection.m_indices} {
+    // take pointer to avoid construction from temporary
+    SelectionView( const container_t* container, const ExportedSelection<IndexSize>& selection )
+        : m_container{container}, m_indices{&selection.m_indices} {
 #ifndef NDEBUG
-      if ( selection.zipIdentifier() != container.zipIdentifier() ) {
-        throw GaudiException( "incompatible selection!!!! ahahah write something more "
-                              "meaningful!",
+      if ( selection.zipIdentifier() != container->zipIdentifier() ) {
+        throw GaudiException( "Building SelectionView from an ExportedSelection of a different container family.",
                               details::typename_v<SelectionView>, StatusCode::FAILURE );
       }
 #endif
     }
 
-    const_iterator begin() const { return {m_container, m_indices.begin()}; }
-    const_iterator cbegin() const { return {m_container, m_indices.cbegin()}; }
+    const_iterator begin() const { return {m_container, m_indices->begin()}; }
+    const_iterator cbegin() const { return {m_container, m_indices->cbegin()}; }
 
-    const_iterator end() const { return {m_container, m_indices.end()}; }
-    const_iterator cend() const { return {m_container, m_indices.cend()}; }
+    const_iterator end() const { return {m_container, m_indices->end()}; }
+    const_iterator cend() const { return {m_container, m_indices->cend()}; }
 
-    proxy_type const back() const { return m_container[m_indices.back()]; }
-    proxy_type const front() const { return m_container[m_indices.front()]; }
+    proxy_type const back() const { return ( *m_container )[m_indices->back()]; }
+    proxy_type const front() const { return ( *m_container )[m_indices->front()]; }
 
-    std::size_t size() const { return m_indices.size(); }
+    std::size_t size() const { return m_indices->size(); }
 
-    bool empty() const { return m_indices.empty(); }
+    bool empty() const { return m_indices->empty(); }
 
     proxy_type const operator[]( std::size_t i ) const {
       assert( i < size() );
-      return m_container[m_indices[i]];
+      return ( *m_container )[( *m_indices )[i]];
     }
 
     friend bool operator==( SelectionView const& lhs, SelectionView const& rhs ) {
-      return lhs.m_container == rhs.m_container && lhs.m_indices == rhs.m_indices;
+      return lhs.m_container == rhs.m_container && ( *lhs.m_indices ) == ( *rhs.m_indices );
     }
 
     friend bool operator!=( SelectionView const& lhs, SelectionView const& rhs ) { return !( lhs == rhs ); }
@@ -259,120 +334,35 @@ namespace Zipping {
      */
     template <typename Predicate>
     [[nodiscard]] ExportedSelection<IndexSize> select( Predicate&& predicate, int reserveCapacity = -1 ) const {
-      ExportedSelection<IndexSize> retval( m_container.zipIdentifier(), details::alwaysFalse{} );
-      retval.m_indices.reserve( reserveCapacity < 0 ? m_indices.size() : reserveCapacity );
-      std::copy_if( m_indices.begin(), m_indices.end(), std::back_inserter( retval.m_indices ),
-                    [&]( auto i ) { return predicate( m_container[i] ); } );
+      ExportedSelection<IndexSize> retval( m_container->zipIdentifier(), details::alwaysFalse{} );
+      retval.m_indices.reserve( reserveCapacity < 0 ? m_indices->size() : reserveCapacity );
+      std::copy_if( m_indices->begin(), m_indices->end(), std::back_inserter( retval.m_indices ),
+                    [&]( auto i ) { return predicate( ( *m_container )[i] ); } );
       return retval;
-    }
-
-    // Set operations -- these throw if two SelectionViews that point to
-    // different underlying storage are provided.
-    //
-    // TODO: abstract away that selections can be of different type from the
-    // same container family
-    friend SelectionView set_union( SelectionView const& s1, SelectionView const& s2 ) {
-      details::check_for_set_operation( s1, s2,
-                                        "set_union" ); // check s1 and s2 are valid and compatible
-
-      // Shortcuts so we can use .back() below
-      if ( s1.empty() ) { return s2; }
-      if ( s2.empty() ) { return s1; }
-
-      // Create a new SelectionView object with an empty index vector with
-      // an appropriate reserved capacity
-      std::size_t   est_csize = std::max( s1.m_indices.back(), s2.m_indices.back() ) + 1;
-      SelectionView ret{s1.m_container, details::alwaysFalse{},
-                        static_cast<int>( std::min( est_csize, s1.size() + s2.size() ) )};
-
-      // Use std::set_union to combine s1.m_indices and s2.m_indices into a
-      // new index container
-      std::set_union( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
-                      std::back_inserter( ret.m_indices ) );
-      return ret;
-    }
-
-    friend SelectionView set_intersection( SelectionView const& s1, SelectionView const& s2 ) {
-      details::check_for_set_operation( s1, s2,
-                                        "set_intersection" ); // check s1 and s2 are valid and
-                                                              // compatible
-
-      // Create a new SelectionView object with an empty index vector with
-      // an appropriate reserved capacity
-      SelectionView ret{s1.m_container, details::alwaysFalse{}, static_cast<int>( std::min( s1.size(), s2.size() ) )};
-
-      // Use std::set_intersection to combine s1.m_indices and s2.m_indices
-      // into a new index container
-      std::set_intersection( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
-                             std::back_inserter( ret.m_indices ) );
-      return ret;
-    }
-
-    friend SelectionView set_difference( SelectionView const& s1, SelectionView const& s2 ) {
-      details::check_for_set_operation( s1, s2,
-                                        "set_difference" ); // check s1 and s2 are valid and compatible
-
-      // Create a new SelectionView object with an empty index vector with
-      // an appropriate reserved capacity
-      SelectionView ret{s1.m_container, details::alwaysFalse{}, static_cast<int>( s1.size() )};
-
-      // Use std::set_difference to combine s1.m_indices and s2.m_indices
-      // into a new index container
-      std::set_difference( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
-                           std::back_inserter( ret.m_indices ) );
-      return ret;
-    }
-
-    friend bool includes( SelectionView const& s1, SelectionView const& s2 ) {
-      details::check_for_set_operation( s1, s2,
-                                        "includes" ); // check s1 and s2 are valid and compatible
-      return std::includes( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end() );
-    }
-
-    friend SelectionView set_symmetric_difference( SelectionView const& s1, SelectionView const& s2 ) {
-      details::check_for_set_operation( s1, s2,
-                                        "set_symmetric_difference" ); // check s1 and s2 are valid and
-                                                                      // compatible
-
-      // Shortcuts so we can use .back() below safely
-      if ( s1.empty() ) { return s2; }
-      if ( s2.empty() ) { return s1; }
-
-      // Create a new SelectionView object with an empty index vector with
-      // an appropriate reserved capacity
-      std::size_t   est_csize = std::max( s1.m_indices.back(), s2.m_indices.back() ) + 1;
-      SelectionView ret{s1.m_container, details::alwaysFalse{},
-                        static_cast<int>( std::min( est_csize, s1.size() + s2.size() ) )};
-
-      // Use std::set_difference to combine s1.m_indices and s2.m_indices
-      // into a new index container
-      std::set_symmetric_difference( s1.m_indices.begin(), s1.m_indices.end(), s2.m_indices.begin(), s2.m_indices.end(),
-                                     std::back_inserter( ret.m_indices ) );
-      return ret;
     }
   };
 
   template <typename CONTAINER, typename Predicate = details::alwaysTrue, typename IndexSize = uint16_t>
-  ExportedSelection<IndexSize> makeSelection( const CONTAINER& container, Predicate&& predicate = {},
+  ExportedSelection<IndexSize> makeSelection( const CONTAINER* container, Predicate&& predicate = {},
                                               int reserveCapacity = -1 ) {
     using container_t = std::decay_t<CONTAINER>;
-    if ( container.size() >= typename container_t::size_type( std::numeric_limits<IndexSize>::max() ) ) {
-      throw GaudiException{"Index overflow: " + std::to_string( container.size() - 1 ) + " > " +
+    if ( container->size() >= typename container_t::size_type( std::numeric_limits<IndexSize>::max() ) ) {
+      throw GaudiException{"Index overflow: " + std::to_string( container->size() - 1 ) + " > " +
                                std::to_string( std::numeric_limits<IndexSize>::max() ) +
                                details::typename_v<SelectionView<container_t>>,
                            details::typename_v<SelectionView<container_t>>, StatusCode::FAILURE};
     }
-    ExportedSelection<IndexSize> retval( container.zipIdentifier(), details::alwaysFalse{} );
+    ExportedSelection<IndexSize> retval( container->zipIdentifier(), details::alwaysFalse{} );
 
     if constexpr ( std::is_same_v<Predicate, details::alwaysTrue> ) {
-      retval.m_indices.resize( container.size() );
+      retval.m_indices.resize( container->size() );
       std::iota( retval.m_indices.begin(), retval.m_indices.end(), 0 );
     } else if constexpr ( std::is_same_v<Predicate, details::alwaysFalse> ) {
       if ( reserveCapacity >= 0 ) { retval.m_indices.reserve( reserveCapacity ); }
     } else {
-      retval.m_indices.reserve( reserveCapacity < 0 ? container.size() : reserveCapacity );
+      retval.m_indices.reserve( reserveCapacity < 0 ? container->size() : reserveCapacity );
       auto offset = 0;
-      for ( auto const i : container ) {
+      for ( auto const i : *container ) {
         if ( std::invoke( predicate, i ) ) { retval.m_indices.push_back( offset ); }
         ++offset;
       }
@@ -382,7 +372,7 @@ namespace Zipping {
 
   // Template parameter deduction guides
   template <typename T, typename... Args>
-  SelectionView( T, Args... )->SelectionView<T>;
+  SelectionView( T*, Args... )->SelectionView<T>;
 
   namespace details {
     // Helpers for requireSelection<S> below
