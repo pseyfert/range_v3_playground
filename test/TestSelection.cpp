@@ -116,12 +116,21 @@ BOOST_AUTO_TEST_CASE( basic_zip_and_selection_operations ) {
       Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( track_with_momentum, foo3 );
   [[maybe_unused]] auto yet_another_full_track = Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( full_track );
 
-  Zipping::ExportedSelection<> selected_tracks_exported =
+  BOOST_CHECK_EQUAL( full_track[0], ( *full_track.begin() ) );
+
+  auto exported_selection =
       Zipping::makeSelection( &track_with_momentum, []( auto i ) { return 0 == i.accessor_fitres().q % 2; } );
-  Zipping::SelectionView<decltype( track_with_momentum )> selected_tracks( &track_with_momentum,
-                                                                           selected_tracks_exported );
-  auto                                                    tmp = selected_tracks.export_selection();
-  BOOST_CHECK( selected_tracks_exported == tmp );
+
+  Zipping::SelectionView<decltype( track_with_momentum )> selected_tracks{&track_with_momentum, exported_selection};
+
+  Zipping::SelectionView<decltype( full_track )> selected_full_tracks( &full_track, exported_selection );
+
+  auto crosscheck = selected_full_tracks.export_selection();
+
+  BOOST_CHECK( crosscheck == exported_selection );
+
+  [[maybe_unused]] auto refined =
+      selected_full_tracks.select( []( const auto fulltrack ) { return fulltrack.accessor_fitqual().chi2 < 3; } );
 
   BOOST_CHECK_EQUAL( selected_tracks.size(), track_with_momentum.size() / 2 );
 
@@ -129,10 +138,13 @@ BOOST_AUTO_TEST_CASE( basic_zip_and_selection_operations ) {
   BOOST_CHECK_EQUAL( *( selected_tracks.end() - 1 ), selected_tracks.back() );
 
   int keep_track = 0;
-  for ( auto it = selected_tracks.begin(); it != selected_tracks.end(); ++it ) {
+  for ( auto it = selected_full_tracks.begin(); it != selected_full_tracks.end(); ++it ) {
     BOOST_CHECK_EQUAL( ( *it ).accessor_fitres().q, 2 * keep_track );
-    BOOST_CHECK_EQUAL( it - selected_tracks.begin(), keep_track );
-    BOOST_CHECK_EQUAL( *it, selected_tracks[keep_track] );
+    BOOST_CHECK_EQUAL( it - selected_full_tracks.begin(), keep_track );
+
+    BOOST_CHECK( ( *it ) == selected_full_tracks[keep_track] );
+    BOOST_CHECK_EQUAL( *it, selected_full_tracks[keep_track] );
+    BOOST_CHECK_EQUAL( selected_full_tracks[keep_track], selected_full_tracks[keep_track] );
     keep_track += 1;
   }
   keep_track = 0;
