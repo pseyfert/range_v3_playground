@@ -69,7 +69,7 @@ namespace Zipping {
    *  select 65536 objects...
    */
   template <typename IndexSize = uint16_t>
-  struct ExportedSelection {
+  struct ExportedSelection final {
     // usings and types
     using index_vector = typename std::vector<IndexSize>;
 
@@ -82,23 +82,27 @@ namespace Zipping {
     ExportedSelection() = delete;
 
     // alwaysFalse is not default'ed here to make the default explicit at call side.
-    ExportedSelection( ZipFamilyNumber id, Zipping::details::alwaysFalse ) : m_family_id( id ) {}
+    // no True option available in this option
+    ExportedSelection( ZipFamilyNumber id, Zipping::details::alwaysFalse /*only for type, value unused*/) : m_family_id( id ) {}
 
     template <typename CONTAINER,
               typename = typename std::enable_if_t<has_semantic_zip<std::decay_t<CONTAINER>>::value>>
-    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysFalse )
+    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysFalse /*only for type, value unused*/)
         : m_family_id{container.zipIdentifier()} {}
 
     template <typename CONTAINER,
               typename = typename std::enable_if_t<has_semantic_zip<std::decay_t<CONTAINER>>::value>>
-    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysTrue )
+    ExportedSelection( const CONTAINER& container, Zipping::details::alwaysTrue /*only for type, value unused*/)
         : m_family_id{container.zipIdentifier()}, m_indices( container.size(), IndexSize{} ) {
       std::iota( m_indices.begin(), m_indices.end(), 0 );
     }
 
     // copy/move constructors, kept here to let the compiler complain should they ever get disabled accidentially
     ExportedSelection( const ExportedSelection& other ) = default;
-    ExportedSelection( ExportedSelection&& other )      = default;
+    ExportedSelection( ExportedSelection&& other ) noexcept(std::is_nothrow_move_constructible<index_vector>::value) = default;
+    ~ExportedSelection() = default;
+    ExportedSelection& operator=(const ExportedSelection&) = default;
+    ExportedSelection& operator=(ExportedSelection&&) noexcept(std::is_nothrow_move_constructible<index_vector>::value) = default;
 
     // direct data construction
     template <typename INDEX_VECTOR,
