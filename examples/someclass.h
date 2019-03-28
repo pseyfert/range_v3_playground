@@ -10,10 +10,10 @@
  * or submit itself to any jurisdiction.
  */
 
-#include "SOAField.h"
-#include "SOASkin.h"
-#include "SOAUtils.h"
-#include "SOAView.h"
+#include "SOAContainer/SOAField.h"
+#include "SOAContainer/SOASkin.h"
+#include "SOAContainer/SOAUtils.h"
+#include "SOAContainer/SOAView.h"
 
 struct track {
   float x;

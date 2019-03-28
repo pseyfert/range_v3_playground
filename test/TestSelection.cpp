@@ -14,11 +14,11 @@
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE utestSelection
-#include "SOAContainer.h"    // for Container
-#include "SOAContainerSet.h" // for ZipContainer, semantic_zip
-#include "SOASkin.h"         // for SOASkinCreatorSimple<>::type
-#include "SOAView.h"         // for _View<>::reference, _View
-#include "ZipSelection.h"    // for SelectionView, SelectionVi...
+#include "SOAContainer/SOAContainer.h"  // for Container
+#include "SOAContainer/SOASkin.h"       // for SOASkinCreatorSimple<>::type
+#include "SOAContainer/SOAView.h"       // for _View<>::reference, _View
+#include "SOAExtensions/ZipContainer.h" // for ZipContainer, semantic_zip
+#include "SOAExtensions/ZipSelection.h" // for SelectionView, SelectionVi...
 #include <boost/test/unit_test.hpp>
 // #include <boost/test/execution_monitor.hpp>
 #include <memory>  // for allocator, allocator_trait...
@@ -26,10 +26,10 @@
 #include <utility> // for move
 #include <vector>  // for vector
 
-#include "SOAField.h"
-#include "SOASkin.h"
-#include "SOAUtils.h"
-#include "SOAView.h"
+#include "SOAContainer/SOAField.h"
+#include "SOAContainer/SOASkin.h"
+#include "SOAContainer/SOAUtils.h"
+#include "SOAContainer/SOAView.h"
 
 struct track {
   float                x;
@@ -38,8 +38,7 @@ struct track {
   float                tx;
   float                ty;
   friend bool          operator==( const track& lhs, const track& rhs ) { return &lhs == &rhs; }
-  friend std::ostream& operator<<( std::ostream& stream, const track& t )
-  {
+  friend std::ostream& operator<<( std::ostream& stream, const track& t ) {
     char buf[100];
     snprintf( buf, 99, "track at (%#8.2f, %#8.2f, %#8.2f)", t.x, t.y, t.z );
     stream << buf;
@@ -56,8 +55,7 @@ struct fitres {
   float                pz;
   int                  q;
   friend bool          operator==( const fitres& lhs, const fitres& rhs ) { return &lhs == &rhs; }
-  friend std::ostream& operator<<( std::ostream& stream, const fitres& t )
-  {
+  friend std::ostream& operator<<( std::ostream& stream, const fitres& t ) {
     char buf[100];
     snprintf( buf, 99, "momentum = (%#8.2f, %#8.2f, %#8.2f), charge %d", t.px, t.py, t.pz, t.q );
     stream << buf;
@@ -71,12 +69,10 @@ SOASKIN_TRIVIAL( s_fitres, f_fitres );
 struct fitqual {
   float       chi2;
   int         dof;
-  friend bool operator==( const fitqual& lhs, const fitqual& rhs )
-  {
+  friend bool operator==( const fitqual& lhs, const fitqual& rhs ) {
     return lhs.dof == rhs.dof && ( std::abs( lhs.chi2 - rhs.chi2 ) / ( lhs.chi2 + rhs.chi2 ) < 0.01 );
   }
-  friend std::ostream& operator<<( std::ostream& stream, const fitqual& t )
-  {
+  friend std::ostream& operator<<( std::ostream& stream, const fitqual& t ) {
     char buf[100];
     snprintf( buf, 99, "chi2/dof = %#8.2f/%d = %#8.4f", t.chi2, t.dof, t.chi2 / ( (float)t.dof ) );
     stream << buf;
@@ -98,12 +94,11 @@ SOASKIN_TRIVIAL( s_track_with_fitres_and_fitqual, f_track, f_fitres, f_fitqual )
 auto range = ranges::view::indices;
 /// end of sugar
 
-BOOST_AUTO_TEST_CASE( smart_test_name_goes_here )
-{
-  ZipContainer<SOA::Container<std::vector, s_track>>   foo1;
-  ZipContainer<SOA::Container<std::vector, s_track>>   foo1_alt;
-  ZipContainer<SOA::Container<std::vector, s_fitres>>  foo2( foo1.zipIdentifier() );
-  ZipContainer<SOA::Container<std::vector, s_fitqual>> foo3( foo1.zipIdentifier() );
+BOOST_AUTO_TEST_CASE( smart_test_name_goes_here ) {
+  Zipping::ZipContainer<SOA::Container<std::vector, s_track>>   foo1;
+  Zipping::ZipContainer<SOA::Container<std::vector, s_track>>   foo1_alt;
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>>  foo2( foo1.zipIdentifier() );
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitqual>> foo3( foo1.zipIdentifier() );
   for ( auto i : range( 42 ) ) {
     track t{i * 100.f, i * 2.f, ( 42 - i ) * 100.f, 0.f, 0.f};
     foo1.push_back( t );
@@ -111,14 +106,17 @@ BOOST_AUTO_TEST_CASE( smart_test_name_goes_here )
     foo3.push_back( fitqual{0.f, i} );
   }
 
-  BOOST_CHECK_THROW( semantic_zip<s_track_with_fitres>( foo1_alt, foo2 ), IncompatibleZipException );
-  auto                  track_with_momentum = semantic_zip<s_track_with_fitres>( foo1, foo2 );
-  [[maybe_unused]] auto full_track          = semantic_zip<s_track_with_fitres_and_fitqual>( foo1, foo2, foo3 );
-  [[maybe_unused]] auto another_full_track = semantic_zip<s_track_with_fitres_and_fitqual>( track_with_momentum, foo3 );
-  [[maybe_unused]] auto yet_another_full_track = semantic_zip<s_track_with_fitres_and_fitqual>( full_track );
+  BOOST_CHECK_THROW( Zipping::semantic_zip<s_track_with_fitres>( foo1_alt, foo2 ), Zipping::IncompatibleZipException );
+  auto                  track_with_momentum = Zipping::semantic_zip<s_track_with_fitres>( foo1, foo2 );
+  [[maybe_unused]] auto full_track = Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( foo1, foo2, foo3 );
+  [[maybe_unused]] auto another_full_track =
+      Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( track_with_momentum, foo3 );
+  [[maybe_unused]] auto yet_another_full_track = Zipping::semantic_zip<s_track_with_fitres_and_fitqual>( full_track );
 
-  SelectionView<decltype( track_with_momentum )> selected_tracks{
-      track_with_momentum, []( auto i ) { return 0 == i.accessor_fitres().q % 2; }};
+  Zipping::ExportedSelection<> selected_tracks_exported =
+      Zipping::makeSelection( track_with_momentum, []( auto i ) { return 0 == i.accessor_fitres().q % 2; } );
+  Zipping::SelectionView<decltype( track_with_momentum )> selected_tracks( track_with_momentum,
+                                                                           selected_tracks_exported );
 
   BOOST_CHECK_EQUAL( selected_tracks.size(), track_with_momentum.size() / 2 );
 
@@ -133,11 +131,9 @@ BOOST_AUTO_TEST_CASE( smart_test_name_goes_here )
     keep_track += 1;
   }
   keep_track = 0;
-  for ( auto proxy : selected_tracks ) {
-    BOOST_CHECK_EQUAL( proxy, selected_tracks[keep_track++] );
-  }
+  for ( auto proxy : selected_tracks ) { BOOST_CHECK_EQUAL( proxy, selected_tracks[keep_track++] ); }
   BOOST_CHECK( std::all_of( track_with_momentum.begin(), track_with_momentum.end(), []( auto t ) {
-    return fabs( t.accessor_track().x + t.accessor_track().z - 4200.f ) < 50.f;
+    return std::abs( t.accessor_track().x + t.accessor_track().z - 4200.f ) < 50.f;
   } ) );
 
   int sum_of_Q = 0;

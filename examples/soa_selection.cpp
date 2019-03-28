@@ -10,18 +10,18 @@
  * or submit itself to any jurisdiction.
  */
 
-#include "./someclass.h"     // for fitres, s_track_with_fitres
-#include "SOAContainer.h"    // for Container
-#include "SOAContainerSet.h" // IWYU pragma: keep
-#include "SOASkin.h"         // for SOASkinCreatorSimple<>::type
-#include "SOAView.h"         // for _View<>::reference, _View
-#include "ZipSelection.h"    // for SelectionView, SelectionVi...
-#include <bits/exception.h>  // for exception
-#include <iostream>          // for operator<<, basic_ostream
-#include <memory>            // for allocator, allocator_trait...
-#include <string>            // for operator<<, string
-#include <utility>           // for move
-#include <vector>            // for vector
+#include "./someclass.h"                // for fitres, s_track_with_fitres
+#include "SOAContainer/SOAContainer.h"  // for Container
+#include "SOAContainer/SOASkin.h"       // for SOASkinCreatorSimple<>::type
+#include "SOAContainer/SOAView.h"       // for _View<>::reference, _View
+#include "SOAExtensions/ZipContainer.h" // IWYU pragma: keep
+#include "SOAExtensions/ZipSelection.h" // for SelectionView, SelectionVi...
+#include <bits/exception.h>             // for exception
+#include <iostream>                     // for operator<<, basic_ostream
+#include <memory>                       // for allocator, allocator_trait...
+#include <string>                       // for operator<<, string
+#include <utility>                      // for move
+#include <vector>                       // for vector
 
 /// pythonic sugar
 #include "range/v3/all.hpp" // IWYU pragma: keep
@@ -41,8 +41,8 @@ void dumb_dump( const PROXY track, const std::string& greet ) {
 }
 
 int main() {
-  ZipContainer<SOA::Container<std::vector, s_track>>  foo1{};
-  ZipContainer<SOA::Container<std::vector, s_fitres>> foo2( foo1.zipIdentifier() );
+  Zipping::ZipContainer<SOA::Container<std::vector, s_track>>  foo1{};
+  Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>> foo2( foo1.zipIdentifier() );
   for ( auto i : range( 42 ) ) {
     track t{i / 100.f, 23.f, 1337.f, 8472.f, 3.14f};
     foo1.push_back( t );
@@ -54,13 +54,15 @@ int main() {
 
   try {
     [[maybe_unused]] auto x =
-        semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
+        Zipping::semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
 
     for ( [[maybe_unused]] auto track : x ) { dumb_dump( track, "first loop" ); }
     dumb_dump( x[0], "lonely zero of main container" );
-    SelectionView<decltype( x )> sx( x, []( auto&& track ) -> bool {
+    Zipping::ExportedSelection<> se = Zipping::makeSelection( x, []( auto&& track ) -> bool {
       return track.accessor_track().x >= 0.02 && ( track.accessor_fitres().q % 2 ) == 1;
     } );
+    Zipping::SelectionView       sx( x, se );
+
     dumb_dump( sx[0], "lonely zero of selection" );
     for ( [[maybe_unused]] auto track : sx ) { dumb_dump( track, "selection loop" ); }
     auto expo = sx.export_selection();
@@ -70,8 +72,10 @@ int main() {
   }
 
   try {
-    SelectionView<decltype( foo1 )> sfoo1( foo1,
-                                           []( auto&& track ) -> bool { return track.accessor_track().x >= 0.03; } );
+    Zipping::ExportedSelection<> sfoo1e =
+        Zipping::makeSelection( foo1, []( auto&& track ) -> bool { return track.accessor_track().x >= 0.03; } );
+
+    Zipping::SelectionView<decltype( foo1 )> sfoo1( foo1, sfoo1e );
     for ( auto track : sfoo1 ) {
       std::cout << "small track part " << track.accessor_track().x << ' ' << track.accessor_track().y << ' '
                 << track.accessor_track().z << '\n';
@@ -79,8 +83,8 @@ int main() {
 
     auto                  expo = sfoo1.export_selection();
     [[maybe_unused]] auto x =
-        semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
-    SelectionView<decltype( x )> sx( x, expo );
+        Zipping::semantic_zip<s_track_with_fitres>( foo1, foo2 ); // works at compile time, works at run time
+    Zipping::SelectionView<decltype( x )> sx( x, expo );
     for ( [[maybe_unused]] auto track : sx ) { dumb_dump( track, "loop with exported selection" ); }
   } catch ( const std::exception& e ) {
     std::cout << "caught UNEXPECTED exception: " << e.what() << std::endl;

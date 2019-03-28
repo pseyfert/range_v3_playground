@@ -29,7 +29,7 @@ option(RUN_TESTS "Build and run tests" OFF)
 if(RUN_TESTS)
   find_package(Boost COMPONENTS unit_test_framework REQUIRED)
   enable_testing()
-  foreach(test IN ITEMS TestSelection)
+  foreach(test IN ITEMS TestSelection TestTrivialZip)
     add_executable(${test} test/${test}.cpp)
     target_include_directories(${test}
       PUBLIC
