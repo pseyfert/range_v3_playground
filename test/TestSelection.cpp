@@ -97,7 +97,7 @@ SOASKIN_TRIVIAL( s_track_with_fitres_and_fitqual, f_track, f_fitres, f_fitqual )
 auto range = ranges::view::indices;
 /// end of sugar
 
-BOOST_AUTO_TEST_CASE( smart_test_name_goes_here ) {
+BOOST_AUTO_TEST_CASE( basic_zip_and_selection_operations ) {
   Zipping::ZipContainer<SOA::Container<std::vector, s_track>>   foo1;
   Zipping::ZipContainer<SOA::Container<std::vector, s_track>>   foo1_alt;
   Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>>  foo2( foo1.zipIdentifier() );
