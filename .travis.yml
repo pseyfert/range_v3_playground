@@ -17,14 +17,17 @@ install:
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
   - sudo apt update
   # https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test/+packages
-  - sudo apt install clang-tidy-7 iwyu libboost-all-dev ninja-build g++-8 binutils
+  - sudo apt install clang-tidy-7 libboost-all-dev ninja-build g++-8 binutils
+  # iwyu version seems outdated too far to bother
+  # - sudo apt install clang-tidy-7 iwyu libboost-all-dev ninja-build g++-8 binutils
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 10
   - which g++
   - g++ --version
   - which ninja
   - ninja --version
   - which clang-tidy
   - clang-tidy --version
-  - include-what-you-use --version
+  #- include-what-you-use --version
   - DEPS_DIR="${HOME}/deps"
   - MAINDIR=$(pwd)
   - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
@@ -49,5 +52,6 @@ script:
   - cmake --build . --parallel 1
   - ctest
   - cd ..
-  - iwyu_tool.py -p build examples/soa_* -- $(for v in include/SOAExtensions/* ; do echo "--check_also=../$v" ; done) --mapping_file=../cppreference.imp
+    # see above
+    # - iwyu_tool.py -p build examples/soa_* -- $(for v in include/SOAExtensions/* ; do echo "--check_also=../$v" ; done) --mapping_file=../cppreference.imp
   - clang-tidy -p=build examples/soa*
