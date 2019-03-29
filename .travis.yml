@@ -24,6 +24,8 @@ install:
   - export PATH=${DEPS_DIR}/cmake/bin:${PATH}
   - git clone https://github.com/ericniebler/range-v3.git && mkdir -p range-v3-build && cd range-v3-build && cmake ../range-v3 -DCMAKE_INSTALL_PREFIX=${DEPS_DIR}/range-v3-install -DCMAKE_BUILD_TYPE=Release -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=17 -DBUILD_TESTING=OFF -DRANGES_CXX_STD=17 -DRANGE_BUILD_CALENDAR_EXAMPLE=OFF -DRANGE_V3_EXAMPLES=OFF -DRANGE_V3_HEADER_CHECKS=OFF -DRANGE_V3_TESTS=OFF && cmake --build . --target install && cd ..
   - export CMAKE_PREFIX_PATH=${DEPS_DIR}/range-v3-install:${CMAKE_PREFIX_PATH}
+  - git clone https://github.com/google/benchmark.git && mkdir -p benchmark-build && cd benchmark-build && cmake ../benchmark -DCMAKE_INSTALL_PREFIX=${DEPS_DIR}/benchmark-install -DCMAKE_BUILD_TYPE=Release -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=17 -DBENCHMARK_ENABLE_TESTING=OFF -DBENCHMARK_ENABLE_INSTALL=ON -DBENCHMARK_ENABLE_GTEST_TESTS=OFF -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF && cmake --build . --target install && cd ..
+  - export CMAKE_PREFIX_PATH=${DEPS_DIR}/benchmark-install:${CMAKE_PREFIX_PATH}
   - cd ${MAINDIR}
 
 
