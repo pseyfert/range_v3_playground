@@ -3,6 +3,10 @@
 //
 //  Copyright CERN 2018-present
 //
+//  In applying this licence, CERN does not waive the privileges and immunities
+//  granted to it by virtue of its status as an Intergovernmental Organization
+//  or submit itself to any jurisdiction.
+//
 //  Use, modification and distribution is subject to the
 //  Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at
@@ -338,7 +342,7 @@ namespace ranges
                 }
                 template<typename... T, std::size_t... Idx>
                 static int tuple_or(const std::tuple<T...> t,
-                                     std::index_sequence<Idx...>)
+                                    std::index_sequence<Idx...>)
                 {
                     return variable_length_or(std::get<Idx>(t)...);
                 }

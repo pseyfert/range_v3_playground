@@ -22,8 +22,7 @@
 
 using indextype = unsigned int;
 
-class Widget
-{
+class Widget {
 private:
   int m_int{0};
 
@@ -34,14 +33,12 @@ public:
   void upit() { m_int += 23; }
 };
 
-inline std::ostream& operator<<( std::ostream& str, const Widget& obj )
-{
+inline std::ostream& operator<<( std::ostream& str, const Widget& obj ) {
   str << '\t' << obj.the_int();
   return str;
 }
 
-int main()
-{
+int main() {
   std::vector<Widget> widgets;
   std::vector<Widget> tmp;
   std::vector<bool>   mask;
@@ -56,23 +53,17 @@ int main()
   const std::vector<Widget> cwidgets( tmp );
 
   std::cout << "functional, single mask (mask)" << std::endl;
-  for ( auto& el : ranges::view::masker( widgets, mask ) ) {
-    std::cout << el << std::endl;
-  }
+  for ( auto& el : ranges::view::masker( widgets, mask ) ) { std::cout << el << std::endl; }
   std::cout << std::endl;
   std::cout << std::endl;
 
   std::cout << "piped, single mask (mask)" << std::endl;
-  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) {
-    std::cout << el << std::endl;
-  }
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask ) ) { std::cout << el << std::endl; }
   std::cout << std::endl;
   std::cout << std::endl;
 
   std::cout << "piped, single mask (mask2)" << std::endl;
-  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask2 ) ) {
-    std::cout << el << std::endl;
-  }
+  for ( auto& el : ranges::view::all( widgets ) | ranges::view::masker( mask2 ) ) { std::cout << el << std::endl; }
   std::cout << std::endl;
   std::cout << std::endl;
 
@@ -92,9 +83,7 @@ int main()
   std::cout << std::endl;
 
   std::cout << "onecall functional, mask || mask2 (2 masks, pipe and functional)" << std::endl;
-  for ( auto& el : ranges::view::or_masker( widgets, mask, mask2 ) ) {
-    std::cout << el << std::endl;
-  }
+  for ( auto& el : ranges::view::or_masker( widgets, mask, mask2 ) ) { std::cout << el << std::endl; }
   std::cout << std::endl;
   std::cout << std::endl;
 

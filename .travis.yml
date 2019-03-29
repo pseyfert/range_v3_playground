@@ -1,0 +1,63 @@
+# Copyright (C) 2019  CERN for the benefit of the LHCb collaboration
+# Author: Paul Seyfert <pseyfert@cern.ch>
+#
+# This software is distributed under the terms of the GNU General Public
+# Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+#
+# In applying this licence, CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
+language: cpp
+compiler: gcc
+
+install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo add-apt-repository -y 'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-7 main'
+  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+  - sudo apt update
+  # https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test/+packages
+  - sudo apt install clang-tidy-7 libboost-all-dev ninja-build g++-8 binutils
+
+  - sudo apt install cpp-8 fixincludes g++-8 gcc-8 gcc-8-base gcc-8-locales gcc-8-offload-nvptx gcc-8-plugin-dev lib64asan5 lib64atomic1 lib64gcc-8-dev lib64gcc1 lib64quadmath0 lib64stdc++-8-dev lib64stdc++6 lib64ubsan1 libasan5 libatomic1 libcc1-0 libgcc-8-dev libgcc1 libgccjit-8-dev libgccjit0 libitm1 liblsan0 libmpx2 libquadmath0 libstdc++-8-dev libstdc++6 libtsan0 libubsan1
+
+  # iwyu version seems outdated too far to bother
+  # - sudo apt install clang-tidy-7 iwyu libboost-all-dev ninja-build g++-8 binutils
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 10
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 10
+  - which g++
+  - g++ --version
+  - which ninja
+  - ninja --version
+  - which clang-tidy
+  - clang-tidy --version
+  #- include-what-you-use --version
+  - DEPS_DIR="${HOME}/deps"
+  - MAINDIR=$(pwd)
+  - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
+  - mkdir cmake && travis_retry wget --no-check-certificate --quiet -O - "https://cmake.org/files/v3.14/cmake-3.14.0-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C cmake
+  - export PATH=${DEPS_DIR}/cmake/bin:${PATH}
+  - git clone https://github.com/ericniebler/range-v3.git && mkdir -p range-v3-build && cd range-v3-build && cmake ../range-v3 -DCMAKE_INSTALL_PREFIX=${DEPS_DIR}/range-v3-install -DCMAKE_BUILD_TYPE=Release -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_STANDARD=17 -DBUILD_TESTING=OFF -DRANGES_CXX_STD=17 -DRANGE_BUILD_CALENDAR_EXAMPLE=OFF -DRANGE_V3_EXAMPLES=OFF -DRANGE_V3_HEADER_CHECKS=OFF -DRANGE_V3_TESTS=OFF && cmake --build . --target install && cd ..
+  - export CMAKE_PREFIX_PATH=${DEPS_DIR}/range-v3-install:${CMAKE_PREFIX_PATH}
+  - git clone https://github.com/google/benchmark.git && mkdir -p benchmark-build && cd benchmark-build && cmake ../benchmark -DCMAKE_INSTALL_PREFIX=${DEPS_DIR}/benchmark-install -DCMAKE_BUILD_TYPE=Release -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_STANDARD=17 -DBENCHMARK_ENABLE_TESTING=OFF -DBENCHMARK_ENABLE_INSTALL=ON -DBENCHMARK_ENABLE_GTEST_TESTS=OFF -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF && cmake --build . --target install && cd ..
+  - export CMAKE_PREFIX_PATH=${DEPS_DIR}/benchmark-install:${CMAKE_PREFIX_PATH}
+  - which cmake
+  - cmake --version
+  - cd ${MAINDIR}
+
+
+script:
+  - mkdir build
+  - cd build
+  # prevent ninja from stripping colorized outputs
+  - export CLICOLOR_FORCE=1
+  # ninja mainly to print the build command in exactly in case of failure
+  - cmake -GNinja -DRUN_TESTS=ON -DBUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_RULE_MESSAGES=NO -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fdiagnostics-color -Wextra -Wall -Wshadow -fsanitize=address" ..
+  - cmake --build . --parallel 1
+  - ctest
+  - cd ..
+    # see above
+    # - iwyu_tool.py -p build examples/soa_* -- $(for v in include/SOAExtensions/* ; do echo "--check_also=../$v" ; done) --mapping_file=../cppreference.imp
+  - clang-tidy -p=build examples/soa*
+
+

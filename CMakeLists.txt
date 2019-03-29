@@ -13,6 +13,8 @@ project(masked_range VERSION 0.0 LANGUAGES CXX)
 
 # most of this file largely inspired by https://github.com/pabloariasal/modern-cmake-sample
 
+# TODO fixup installs
+
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
@@ -24,9 +26,30 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_EXAMPLES "Build the example" OFF)
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+option(RUN_TESTS "Build and run tests" OFF)
+
+if(RUN_TESTS)
+  find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+  enable_testing()
+  foreach(test IN ITEMS TestSelection TestTrivialZip)
+    add_executable(${test} test/${test}.cpp)
+    target_include_directories(${test}
+      PUBLIC
+      include
+      ${Boost_INCLUDE_DIRS}
+      )
+    target_link_libraries(${test}
+      PUBLIC # does that even make sense for an executable?
+      range-v3
+      ${Boost_LIBRARIES}
+      )
+    add_test(NAME "${test}"
+      COMMAND ${test})
+  endforeach()
+endif()
 
 if(BUILD_EXAMPLES)
-  foreach(target IN ITEMS masked_int masked_bool wrap_user soa_with_safety2 soa_with_safety soa_selection)
+  foreach(target IN ITEMS masked_int masked_bool wrap_user soa_with_safety2 soa_selection)
     add_executable(${target} examples/${target}.cpp)
     target_include_directories(${target}
       PUBLIC
