@@ -16,7 +16,7 @@ install:
   - sudo add-apt-repository -y 'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-7 main'
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
   - sudo apt update
-  - sudo apt install clang-tidy-7 iwyu clang-7
+  - sudo apt install clang-tidy-7 iwyu clang-7 libboost-all-dev
   - DEPS_DIR="${HOME}/deps"
   - MAINDIR=$(pwd)
   - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
