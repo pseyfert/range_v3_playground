@@ -24,6 +24,7 @@ install:
   # iwyu version seems outdated too far to bother
   # - sudo apt install clang-tidy-7 iwyu libboost-all-dev ninja-build g++-8 binutils
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 10
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 10
   - which g++
   - g++ --version
   - which ninja
