@@ -15,15 +15,21 @@
 #include <exception> // IWYU pragma: keep
 // IWYU pragma: no_include <bits/exception.h>
 #include <string>
-#include <string_view>
 
 namespace Zipping {
+  /** @class IncompatibleZipException
+   *
+   * @brief Exception that's thrown when zipping Zipping::ZipContainers that are semantically incompatible
+   */
   class IncompatibleZipException final : public std::exception {
-    std::string m_message{"unspecified failure"};
+    std::string m_message{"unspecified failure"}; ///< message in the exception with more details
 
   public:
+    /// default constructor deleted, intention is to always provide details
     IncompatibleZipException() = default;
-    IncompatibleZipException( std::string_view&& s ) : m_message( s ) {}
+    /// constructor with additional method
+    IncompatibleZipException( std::string s ) : m_message( std::move( s ) ) {}
+    /// print the contained message with details
     std::string message() { return m_message; }
   };
 } // namespace Zipping
