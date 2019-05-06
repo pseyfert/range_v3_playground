@@ -23,6 +23,8 @@
 #include <utility>                      // for move
 #include <vector>                       // for vector
 
+#include "SOAExtensions/ZipAlgorithms.h"
+
 /// pythonic sugar
 #include "range/v3/all.hpp" // IWYU pragma: keep
 // IWYU pragma: no_include <range/v3/view/indices.hpp>
@@ -89,6 +91,26 @@ int main() {
   } catch ( const std::exception& e ) {
     std::cout << "caught UNEXPECTED exception: " << e.what() << std::endl;
     return 1;
+  }
+
+  {
+    auto track_to_fitres_lambda = []( const auto track ) { return fitres{track.accessor_track().x, 2.f, 3.f, 42}; };
+    // Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>> foo2 =
+    auto foo2 =
+        Zipping::for_each<s_fitres>( foo1, track_to_fitres_lambda );
+
+    std::cout << "expect Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>>, got " << boost::typeindex::type_id_with_cvr<decltype(foo2)>().pretty_name() << '\n';
+
+    [[maybe_unused]] auto x = Zipping::semantic_zip<s_track_with_fitres>( foo1, foo2 );
+
+    Zipping::ExportedSelection<> sfoo1e =
+        Zipping::makeSelection( &foo1, []( auto&& track ) -> bool { return track.accessor_track().x >= 0.03; } );
+
+    // Zipping::ZipContainer<SOA::Container<std::vector, s_fitres>> foo2_ =
+    auto foo2_ =
+        Zipping::for_some<s_fitres>( foo1, track_to_fitres_lambda, sfoo1e );
+
+    [[maybe_unused]] auto y = Zipping::semantic_zip<s_track_with_fitres>( foo1, foo2_ );
   }
 
   std::flush( std::cout );
